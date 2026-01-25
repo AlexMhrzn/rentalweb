@@ -5,9 +5,11 @@ import { Toaster } from 'react-hot-toast';
 import Headers from './pages/components/Headers';
 import Footers from './pages/components/Footers';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
+import UserDashboard from './pages/UserDashboard';
 import Edituser from './pages/EditUser';
 import ProtectedRoute from './protected/ProtectedRoute'
+import AdminDashboard from './pages/AdminDashboard';
+import OwnerDashboard from './pages/OwnerDashboard';
 function App() {
   // block for js 
   return (
@@ -18,11 +20,14 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/contact" element={<div> conatct</div>} />
-        <Route path="/userdash" element={<div> userdash</div>} />
+        <Route path="/userdashboard" element={<UserDashboard />} />
+        <Route path="/contact" element={<div> contact</div>} />
+        <Route path="/admindashboard" element={<AdminDashboard />} />
+        <Route path="/ownerdashboard" element={<OwnerDashboard />} />
 
         <Route path="/admindash" element={
           <ProtectedRoute allowedRoles={['admin']} element={<Dashboard />}
+          
           />} />
 
         <Route path="/edituser/:id" element={

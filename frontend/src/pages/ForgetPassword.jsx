@@ -12,13 +12,12 @@ const ForgetPassword = () => {
 
   // Countdown timer effect
   useEffect(() => {
-    let timer;
     if (countdown > 0) {
-      timer = setTimeout(() => {
+      const timer = setTimeout(() => {
         setCountdown(countdown - 1);
       }, 1000);
+      return () => clearTimeout(timer);
     }
-    return () => clearTimeout(timer);
   }, [countdown]);
 
   const handleChange = (e) => {
@@ -30,8 +29,62 @@ const ForgetPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validation()) return;
+    e.stopPropagation();
+    
+    console.log('Form submitted with:', formData);
+    
+    if (!validation()) {
+      console.log('Validation failed');
+      return;
+    }
 
+    setIsSubmitting(true);
+    try {
+      // TODO: Replace with actual API call
+      // const response = await forgotPasswordApi(formData);
+      
+      console.log('Sending reset request...');
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      toast.success('Reset link/OTP sent successfully!');
+      setCountdown(30); // Start 30 second countdown
+      console.log('Reset link sent successfully');
+    } catch (err) {
+      console.error('Forgot password error:', err);
+      toast.error(err.response?.data?.message || 'Failed to send reset link. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const validation = () => {
+    const trimmedValue = formData.emailOrPhone.trim();
+    
+    if (!trimmedValue) {
+      toast.error('Email or mobile number is required');
+      return false;
+    }
+    
+    // Basic validation - check if it's email or phone
+    const isEmail = /\S+@\S+\.\S+/.test(trimmedValue);
+    // Nepal phone numbers: 10 digits (can start with 98, 97, etc.)
+    // Also allow with country code +977
+    const cleanedPhone = trimmedValue.replace(/[\s\-+()]/g, '');
+    const isPhone = /^(\+?977)?[0-9]{10}$/.test(cleanedPhone) || /^[0-9]{10,15}$/.test(cleanedPhone);
+    
+    if (!isEmail && !isPhone) {
+      toast.error('Please enter a valid email or mobile number (10 digits)');
+      return false;
+    }
+    return true;
+  };
+
+  const handleResend = async () => {
+    if (countdown > 0 || !formData.emailOrPhone.trim()) return;
+    
+    if (!validation()) return;
+    
     setIsSubmitting(true);
     try {
       // TODO: Replace with actual API call
@@ -48,27 +101,6 @@ const ForgetPassword = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const validation = () => {
-    if (!formData.emailOrPhone.trim()) {
-      toast.error('Email or mobile number is required');
-      return false;
-    }
-    // Basic validation - check if it's email or phone
-    const isEmail = /\S+@\S+\.\S+/.test(formData.emailOrPhone);
-    const isPhone = /^[0-9]{10,15}$/.test(formData.emailOrPhone.replace(/\s+/g, ''));
-    
-    if (!isEmail && !isPhone) {
-      toast.error('Please enter a valid email or mobile number');
-      return false;
-    }
-    return true;
-  };
-
-  const handleResend = () => {
-    if (countdown > 0) return;
-    handleSubmit({ preventDefault: () => {} });
   };
 
   return (
@@ -173,20 +205,20 @@ const ForgetPassword = () => {
                 </p>
               </div>
             )}
-
-            {/* Back to Login Link */}
-            <div className="mt-8 text-center pt-4 border-t border-slate-100">
-              <p className="text-sm text-slate-600">
-                Remember your password?{' '}
-                <Link
-                  to="/login"
-                  className="font-semibold text-teal-600 hover:text-teal-700 transition-colors"
-                >
-                  Login
-                </Link>
-              </p>
-            </div>
           </form>
+
+          {/* Back to Login Link */}
+          <div className="mt-8 text-center pt-4 border-t border-slate-100">
+            <p className="text-sm text-slate-600">
+              Remember your password?{' '}
+              <Link
+                to="/login"
+                className="font-semibold text-teal-600 hover:text-teal-700 transition-colors"
+              >
+                Login
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

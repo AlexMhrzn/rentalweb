@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { loginUserApi } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 
+
 const toErrorString = (v) => {
   if (v == null) return null;
   if (typeof v === 'string') return v;
@@ -17,6 +18,7 @@ const Login = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -28,8 +30,11 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     if (!validation()) return;
 
+    setIsSubmitting(true);
     try {
       const response = await loginUserApi(formData);
       console.log('Login response:', response);
@@ -63,6 +68,8 @@ const Login = () => {
         // Something else happened
         toast.error(err.message || 'An unexpected error occurred. Please try again.');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -243,7 +250,7 @@ const Login = () => {
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={() => navigate('/forgetpassword')}
+                onClick={() => navigate('/forget-password')}
                 className="text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors"
               >
                 Forgot password?
@@ -254,9 +261,10 @@ const Login = () => {
             <div className="pt-2">
               <button
                 type="submit"
-                className="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl text-base font-bold text-white bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-teal-200/50"
+                disabled={isSubmitting}
+                className="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl text-base font-bold text-white bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-teal-200/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                Login
+                {isSubmitting ? 'Logging in...' : 'Login'}
               </button>
             </div>
 

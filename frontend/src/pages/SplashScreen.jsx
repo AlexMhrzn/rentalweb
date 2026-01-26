@@ -1,33 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 
 const SplashScreen = () => {
-  const [isFading, setIsFading] = useState(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Start fade out after 2 seconds (0.5s before hiding)
-    const fadeTimer = setTimeout(() => {
-      setIsFading(true);
-    }, 2000);
-
-    // Navigate to register after fade animation completes (2s fade start + 0.5s transition)
-    const navigateTimer = setTimeout(() => {
-      navigate('/register', { replace: true });
-    }, 2500);
-
-    return () => {
-      clearTimeout(fadeTimer);
-      clearTimeout(navigateTimer);
-    };
-  }, [navigate]);
-
   return (
-    <div 
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-emerald-200 via-teal-300 to-teal-500 transition-opacity duration-500 ${
-        isFading ? 'opacity-0' : 'opacity-100'
-      }`}
-    >
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-emerald-200 via-teal-300 to-teal-500">
       {/* Soft glow behind logo */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-64 h-64 bg-white/20 rounded-full blur-3xl"></div>

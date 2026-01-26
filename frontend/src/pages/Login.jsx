@@ -3,6 +3,13 @@ import { toast } from 'react-hot-toast';
 import { loginUserApi } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 
+const toErrorString = (v) => {
+  if (v == null) return null;
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object' && v !== null && typeof v.message === 'string') return v.message;
+  return null;
+};
+
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -25,15 +32,37 @@ const Login = () => {
 
     try {
       const response = await loginUserApi(formData);
-      if (response.data.success) {
-        localStorage.setItem('token', response.data.token);
+      console.log('Login response:', response);
+      
+      if (response.data && response.data.success) {
+        localStorage.setItem('token-37c', response.data.token);
+        localStorage.setItem('currentMode', 'user');
         toast.success('Login successful');
-        navigate('/');
+        navigate('/userdashboard');
       } else {
-        toast.error('Login failed');
+        const errorMsg = toErrorString(response.data?.message) ?? toErrorString(response.data?.error) ?? 'Login failed. Please check your credentials.';
+        toast.error(errorMsg);
+        console.error('Login failed - response:', response.data);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      console.error('Login error:', err);
+      console.error('Error response:', err.response);
+      
+      // Handle different error scenarios
+      if (err.response) {
+        // Server responded with error status
+        const errorMsg = toErrorString(err.response.data?.message)
+          ?? toErrorString(err.response.data?.error)
+          ?? `Login failed: ${err.response.status} ${err.response.statusText}`;
+        toast.error(errorMsg);
+      } else if (err.request) {
+        // Request was made but no response received
+        toast.error('Network error. Please check your connection and try again.');
+        console.error('No response received:', err.request);
+      } else {
+        // Something else happened
+        toast.error(err.message || 'An unexpected error occurred. Please try again.');
+      }
     }
   };
 

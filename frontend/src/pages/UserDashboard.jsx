@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const UserDashboard = () => {
+  const navigate = useNavigate();
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
@@ -430,7 +432,10 @@ const UserDashboard = () => {
             </svg>
             <span className="text-xs font-medium text-slate-400">Messages</span>
           </button>
-          <button className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors">
+          <button 
+            onClick={() => navigate('/switchrole')}
+            className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 text-slate-400"

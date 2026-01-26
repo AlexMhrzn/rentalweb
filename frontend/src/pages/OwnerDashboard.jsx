@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const OwnerDashboard = () => {
+  const navigate = useNavigate();
   const [activeBottomNav, setActiveBottomNav] = useState('Dashboard');
 
   // Sample data - replace with actual API calls
@@ -365,7 +367,10 @@ const OwnerDashboard = () => {
 
           {/* Profile */}
           <button
-            onClick={() => setActiveBottomNav('Profile')}
+            onClick={() => {
+              setActiveBottomNav('Profile');
+              navigate('/switchrole');
+            }}
             className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-colors ${
               activeBottomNav === 'Profile' ? 'text-teal-600' : 'text-gray-400'
             }`}

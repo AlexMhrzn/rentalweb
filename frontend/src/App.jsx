@@ -10,6 +10,7 @@ import Edituser from './pages/EditUser';
 import ProtectedRoute from './protected/ProtectedRoute'
 import AdminDashboard from './pages/AdminDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
+import SwitchRole from './pages/SwitchRole';
 function App() {
   // block for js 
   return (
@@ -22,12 +23,13 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/userdashboard" element={<UserDashboard />} />
         <Route path="/contact" element={<div> contact</div>} />
+        <Route path="/about" element={<div> about</div>} />
         <Route path="/admindashboard" element={<AdminDashboard />} />
         <Route path="/ownerdashboard" element={<OwnerDashboard />} />
+        <Route path="/switchrole" element={<SwitchRole />} />
 
         <Route path="/admindash" element={
-          <ProtectedRoute allowedRoles={['admin']} element={<Dashboard />}
-          
+          <ProtectedRoute allowedRoles={['admin']} element={<AdminDashboard />}
           />} />
 
         <Route path="/edituser/:id" element={

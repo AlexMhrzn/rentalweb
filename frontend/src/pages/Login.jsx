@@ -94,10 +94,6 @@ const Login = () => {
     toast.info('Facebook login coming soon');
   };
 
-  const handleForgotPassword = () => {
-    toast.info('Forgot password feature coming soon');
-  };
-
   return (
     <div className="min-h-screen bg-[#E8F5E9] flex items-center justify-center py-8 px-4 sm:py-12 sm:px-6">
       {/* Main Card Container */}
@@ -247,7 +243,7 @@ const Login = () => {
             <div className="flex justify-end">
               <button
                 type="button"
-                onClick={handleForgotPassword}
+                onClick={() => navigate('/forgetpassword')}
                 className="text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors"
               >
                 Forgot password?

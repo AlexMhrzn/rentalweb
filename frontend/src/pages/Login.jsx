@@ -3,7 +3,6 @@ import { toast } from 'react-hot-toast';
 import { loginUserApi } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 
-
 const toErrorString = (v) => {
   if (v == null) return null;
   if (typeof v === 'string') return v;
@@ -42,6 +41,10 @@ const Login = () => {
       if (response.data && response.data.success) {
         localStorage.setItem('token-37c', response.data.token);
         localStorage.setItem('currentMode', 'user');
+        // Store user role if available
+        if (response.data.user && response.data.user.role) {
+          localStorage.setItem('user-role', response.data.user.role);
+        }
         toast.success('Login successful');
         navigate('/userdashboard');
       } else {

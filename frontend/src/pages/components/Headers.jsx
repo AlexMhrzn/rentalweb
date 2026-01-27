@@ -14,6 +14,7 @@ const Headers = () => {
         setUser(response.data.user);
       } catch (error) {
         localStorage.removeItem("token-37c");
+        localStorage.removeItem("user-role");
         setUser(null);
       }
     };
@@ -27,6 +28,7 @@ const Headers = () => {
     if (!confirmDelete) return;
     localStorage.removeItem("token-37c");
  
+    localStorage.removeItem("user-role");
     setUser(null);
     navigate("/login");
   };

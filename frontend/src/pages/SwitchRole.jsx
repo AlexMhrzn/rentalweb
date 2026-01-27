@@ -52,6 +52,7 @@ const SwitchRole = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token-37c');
+    localStorage.removeItem('user-role');
     localStorage.removeItem('currentMode');
     toast.success('Logged out successfully');
     navigate('/login');

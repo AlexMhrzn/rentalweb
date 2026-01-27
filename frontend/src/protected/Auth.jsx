@@ -19,13 +19,16 @@ export const getUserRole = () => {
     const token = getToken();
     if (!token || isTokenExpired(token)) {
          localStorage.removeItem("token-37c");
+         localStorage.removeItem("user-role");
         return null;
     }
     try {
         const decoded = jwtDecode(token);
-        return decoded.role;
+        // Check if role is in token, otherwise get from localStorage
+        return decoded.role || localStorage.getItem("user-role");
     } catch (e) {
         localStorage.removeItem("token-37c");
+        localStorage.removeItem("user-role");
         return null;
     }
 };

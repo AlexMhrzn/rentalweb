@@ -59,22 +59,14 @@ const Login = () => {
       }
     } catch (err) {
       console.error('Login error:', err);
-      console.error('Error response:', err.response);
-      
-      // Handle different error scenarios
+      const errData = err.response?.data;
+      const errorMsg = toErrorString(errData?.message) ?? toErrorString(errData?.error) ?? err.message;
       if (err.response) {
-        // Server responded with error status
-        const errorMsg = toErrorString(err.response.data?.message)
-          ?? toErrorString(err.response.data?.error)
-          ?? `Login failed: ${err.response.status} ${err.response.statusText}`;
-        toast.error(errorMsg);
+        toast.error(errorMsg || `Login failed (${err.response.status})`);
       } else if (err.request) {
-        // Request was made but no response received
-        toast.error('Network error. Please check your connection and try again.');
-        console.error('No response received:', err.request);
+        toast.error('Cannot reach server. Is the backend running on ' + (import.meta.env.VITE_API_BASE_URL || 'localhost:3000') + '?');
       } else {
-        // Something else happened
-        toast.error(err.message || 'An unexpected error occurred. Please try again.');
+        toast.error(errorMsg || 'Login failed. Please try again.');
       }
     } finally {
       setIsSubmitting(false);

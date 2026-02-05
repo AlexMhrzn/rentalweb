@@ -67,6 +67,13 @@ const Headers = () => {
           </Link>
 
           <Link
+            to="/create-admin"
+            className="p-2 bg-slate-500 m-2 rounded-lg text-white hover:bg-slate-600"
+          >
+            admin register
+          </Link>
+
+          <Link
             to="/register"
             className="p-2 bg-red-400 m-2 rounded-lg text-white hover:bg-red-600"
           >

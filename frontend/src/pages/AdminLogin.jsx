@@ -54,15 +54,14 @@ const AdminLogin = () => {
         toast.error(errorMsg);
       }
     } catch (err) {
+      const errData = err.response?.data;
+      const errorMsg = toErrorString(errData?.message) ?? toErrorString(errData?.error) ?? err.message;
       if (err.response) {
-        const errorMsg = toErrorString(err.response.data?.message)
-          ?? toErrorString(err.response.data?.error)
-          ?? `Login failed: ${err.response.status}`;
-        toast.error(errorMsg);
+        toast.error(errorMsg || `Login failed (${err.response.status})`);
       } else if (err.request) {
-        toast.error('Network error. Please check your connection.');
+        toast.error('Cannot reach server. Is the backend running?');
       } else {
-        toast.error(err.message || 'An unexpected error occurred.');
+        toast.error(errorMsg || 'Login failed. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
@@ -198,7 +197,7 @@ const AdminLogin = () => {
             </p>
             <p className="text-sm text-slate-500">
               Need an admin account?{' '}
-              <Link to="/admin-register" className="font-semibold text-slate-600 hover:text-slate-800">
+              <Link to="/create-admin" className="font-semibold text-slate-600 hover:text-slate-800">
                 Register admin
               </Link>
             </p>

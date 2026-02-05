@@ -24,10 +24,10 @@ function App() {
       <Routes>
         <Route path="/" element={<SplashScreen />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/admin-login" element={<AdminLogin />} />
-        <Route path="/admin-register" element={<AdminRegister />} />
-        <Route path="/forget-password" element={<ForgetPassword />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forget-password" element={<ForgetPassword />} />
+        <Route path="/create-admin" element={<AdminRegister />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/userdashboard" element={
           <ProtectedRoute allowedRoles={['user', 'admin']} element={<UserDashboard />} />
         } />

@@ -1,526 +1,214 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import { getAdminStats, getPendingApprovals, approveProduct as approveProductApi, rejectProduct as rejectProductApi } from '../services/api';
+import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
+import { createAdminUserApi } from '../services/api';
+import { Link, useNavigate } from 'react-router-dom';
 
-const AdminDashboard = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalOwners: 0,
-    activeListings: 0,
-    monthlyRevenue: 0,
+const AdminRegister = () => {
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    adminSecret: '',
   });
-  const [pendingApprovals, setPendingApprovals] = useState([]);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
 
-  // Refetch when page becomes visible (e.g. switching back from another tab)
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') fetchDashboardData();
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, []);
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
 
-  const fetchDashboardData = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validation()) return;
+
     try {
-      setLoading(true);
-      const [statsRes, approvalsRes] = await Promise.all([
-        getAdminStats().catch(() => ({ data: { stats: null } })),
-        getPendingApprovals().catch(() => ({ data: { products: [] } })),
-      ]);
-      if (statsRes.data?.stats) {
-        setStats(statsRes.data.stats);
+      setIsSubmitting(true);
+      const fd = new FormData();
+      fd.append('username', formData.username.trim());
+      fd.append('email', formData.email.trim());
+      fd.append('password', formData.password);
+      fd.append('adminSecret', formData.adminSecret.trim());
+
+      const response = await createAdminUserApi(fd);
+
+      if (response.data?.success) {
+        // Clear any existing session so user lands on fresh login page
+        localStorage.removeItem('token-37c');
+        localStorage.removeItem('user-role');
+        localStorage.removeItem('currentMode');
+        toast.success('Admin account created. You can now log in.');
+        navigate('/admin-login', { replace: true });
+      } else {
+        toast.error(response.data?.message || 'Registration failed');
       }
-      const products = approvalsRes.data?.products || [];
-      setPendingApprovals(products.map((p, i) => ({
-        id: p.id,
-        image: p.image || 'https://via.placeholder.com/80x60?text=Property',
-        ownerName: p.owner?.username || 'Unknown',
-        location: p.location || p.city || 'N/A',
-        price: p.price,
-      })));
     } catch (err) {
-      toast.error('Failed to load dashboard data');
-      console.error(err);
+      toast.error(err.response?.data?.message || 'Registration failed');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token-37c');
-    localStorage.removeItem('user-role');
-    localStorage.removeItem('currentMode');
-    setShowProfileDropdown(false);
-    toast.success('Logged out successfully');
-    navigate('/admin-login');
-  };
-  const [activeNav, setActiveNav] = useState('Dashboard');
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [reportsPage, setReportsPage] = useState(1);
-  const itemsPerPage = 5;
-
-  const cityData = [
-    { city: 'Kathmandu', count: 420 },
-    { city: 'Pokhara', count: 280 },
-    { city: 'Chitwan', count: 95 },
-    { city: 'Butwal', count: 45 },
-    { city: 'Dharan', count: 16 }
-  ];
-
-  const maxCount = cityData.length ? Math.max(...cityData.map(d => d.count)) : 1;
-
-  const recentReports = [
-    {
-      id: 1,
-      type: 'Complaint',
-      title: 'Property condition mismatch',
-      reporter: 'John Doe',
-      date: '2026-01-24',
-      status: 'Pending'
-    },
-    {
-      id: 2,
-      type: 'Report',
-      title: 'Suspicious listing activity',
-      reporter: 'Jane Smith',
-      date: '2026-01-23',
-      status: 'Under Review'
-    },
-    {
-      id: 3,
-      type: 'Complaint',
-      title: 'Payment dispute',
-      reporter: 'Mike Johnson',
-      date: '2026-01-22',
-      status: 'Resolved'
-    },
-    {
-      id: 4,
-      type: 'Report',
-      title: 'Fake property images',
-      reporter: 'Sarah Williams',
-      date: '2026-01-21',
-      status: 'Pending'
-    },
-    {
-      id: 5,
-      type: 'Complaint',
-      title: 'Owner not responding',
-      reporter: 'David Brown',
-      date: '2026-01-20',
-      status: 'Under Review'
+  const validation = () => {
+    if (!formData.username.trim()) {
+      toast.error('Username is required');
+      return false;
     }
-  ];
-
-  const navItems = [
-    { name: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { name: 'Users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-    { name: 'Owners', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
-    { name: 'Properties', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { name: 'Approvals', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-    { name: 'Reports', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-    { name: 'Payments', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
-    { name: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' }
-  ];
-
-  const handleApprove = async (id) => {
-    try {
-      await approveProductApi(id);
-      toast.success('Property approved successfully');
-      setPendingApprovals((prev) => prev.filter((p) => p.id !== id));
-      fetchDashboardData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to approve');
+    if (!formData.email.trim()) {
+      toast.error('Email is required');
+      return false;
     }
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      toast.error('Email is invalid');
+      return false;
+    }
+    if (!formData.password) {
+      toast.error('Password is required');
+      return false;
+    }
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return false;
+    }
+    if (!formData.adminSecret.trim()) {
+      toast.error('Admin secret is required');
+      return false;
+    }
+    return true;
   };
 
-  const handleReject = async (id) => {
-    if (!window.confirm('Are you sure you want to reject this property?')) return;
-    try {
-      await rejectProductApi(id);
-      toast.success('Property rejected');
-      setPendingApprovals((prev) => prev.filter((p) => p.id !== id));
-      fetchDashboardData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to reject');
-    }
-  };
+  const EyeIcon = ({ show, toggle }) => (
+    <button
+      type="button"
+      onClick={toggle}
+      className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-slate-600"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {show ? (
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242" />
+        ) : (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </>
+        )}
+      </svg>
+    </button>
+  );
 
-  const totalPages = Math.ceil(pendingApprovals.length / itemsPerPage);
-  const reportsTotalPages = Math.ceil(recentReports.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const reportsStartIndex = (reportsPage - 1) * itemsPerPage;
-  const reportsEndIndex = reportsStartIndex + itemsPerPage;
+  const inputBase = 'block w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 focus:border-slate-500 transition-all text-sm bg-white';
+  const inputWithEye = 'block w-full pl-12 pr-12 py-3.5 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/30 focus:border-slate-500 transition-all text-sm bg-white';
+  const iconWrap = 'absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none';
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg flex flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-teal-600">Rental Admin</h1>
-          <p className="text-sm text-gray-500 mt-1">Nepal Marketplace</p>
-        </div>
-        <nav className="flex-1 p-4 space-y-2">
-          {navItems.map((item) => (
-            <button
-              key={item.name}
-              onClick={() => setActiveNav(item.name)}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeNav === item.name
-                  ? 'bg-teal-50 text-teal-600 font-semibold'
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-              </svg>
-              <span>{item.name}</span>
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 max-w-md">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search users, properties, reports..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center py-8 px-4 sm:py-12 sm:px-6">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-8 sm:p-10">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center shadow-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                 />
-                <svg
-                  className="absolute left-3 top-2.5 w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              {/* Notifications */}
-              <button className="relative p-2 text-gray-600 hover:text-teal-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-
-              {/* Profile Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white font-semibold">
-                    A
-                  </div>
-                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {showProfileDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <button onClick={() => { setShowProfileDropdown(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</button>
-                    <button onClick={() => { setShowProfileDropdown(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</button>
-                    <hr className="my-2" />
-                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">Logout</button>
-                  </div>
-                )}
-              </div>
+              </svg>
             </div>
           </div>
-        </header>
 
-        {/* Dashboard Content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {loading && activeNav === 'Dashboard' && (
-            <div className="flex justify-center py-12">
-              <div className="text-teal-600">Loading...</div>
+          <div className="text-center mb-2">
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">Create Admin Account</h1>
+          </div>
+          <p className="text-center text-sm text-slate-500 mb-8">Register a new admin. You need the admin secret key.</p>
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div className="relative">
+              <div className={iconWrap}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <input id="username" name="username" type="text" placeholder="Admin username" className={inputBase} value={formData.username} onChange={handleChange} />
             </div>
-          )}
-          {activeNav === 'Dashboard' && !loading && (
-            <div className="space-y-6">
-              {/* Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Total Users</p>
-                      <p className="text-3xl font-bold text-gray-800">{stats.totalUsers.toLocaleString()}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <p className="text-xs text-green-600 mt-2">+12% from last month</p>
-                </div>
 
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Total Owners</p>
-                      <p className="text-3xl font-bold text-gray-800">{stats.totalOwners.toLocaleString()}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </div>
-                  </div>
-                  <p className="text-xs text-green-600 mt-2">+8% from last month</p>
-                </div>
-
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Active Listings</p>
-                      <p className="text-3xl font-bold text-gray-800">{stats.activeListings.toLocaleString()}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                      </svg>
-                    </div>
-                  </div>
-                  <p className="text-xs text-green-600 mt-2">+15% from last month</p>
-                </div>
-
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Monthly Revenue</p>
-                      <p className="text-3xl font-bold text-gray-800">NPR {stats.monthlyRevenue.toLocaleString()}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <p className="text-xs text-green-600 mt-2">+22% from last month</p>
-                </div>
+            <div className="relative">
+              <div className={iconWrap}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
               </div>
-
-              {/* Property Postings by City Chart */}
-              <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Property Postings by City</h2>
-                <div className="space-y-4">
-                  {cityData.map((item, index) => (
-                    <div key={item.city} className="flex items-center space-x-4">
-                      <div className="w-24 text-sm text-gray-600 font-medium">{item.city}</div>
-                      <div className="flex-1 relative">
-                        <div className="h-8 bg-gray-100 rounded-lg overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-teal-500 to-teal-600 rounded-lg transition-all duration-500 flex items-center justify-end pr-3"
-                            style={{ width: `${(item.count / maxCount) * 100}%` }}
-                          >
-                            <span className="text-white text-sm font-semibold">{item.count}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Pending Property Approvals */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-800">Pending Property Approvals</h2>
-                  <button
-                    onClick={() => fetchDashboardData()}
-                    className="px-4 py-2 text-sm font-medium text-teal-600 hover:bg-teal-50 rounded-lg transition-colors flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Refresh
-                  </button>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {pendingApprovals.slice(startIndex, endIndex).map((approval) => (
-                        <tr key={approval.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <img src={approval.image} alt="Property" className="w-20 h-16 object-cover rounded" />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{approval.ownerName}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{approval.location}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-semibold text-gray-900">NPR {approval.price.toLocaleString()}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleApprove(approval.id)}
-                                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg transition-colors"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleReject(approval.id)}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {totalPages > 1 && (
-                  <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                    <div className="text-sm text-gray-700">
-                      Showing {startIndex + 1} to {Math.min(endIndex, pendingApprovals.length)} of {pendingApprovals.length} results
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Recent Reports & Complaints */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-800">Recent Reports & Complaints</h2>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {recentReports.slice(reportsStartIndex, reportsEndIndex).map((report) => (
-                        <tr key={report.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              report.type === 'Complaint' 
-                                ? 'bg-red-100 text-red-800' 
-                                : 'bg-blue-100 text-blue-800'
-                            }`}>
-                              {report.type}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900">{report.title}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{report.reporter}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{report.date}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              report.status === 'Resolved' 
-                                ? 'bg-green-100 text-green-800'
-                                : report.status === 'Under Review'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {report.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button className="text-teal-600 hover:text-teal-800">View</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {reportsTotalPages > 1 && (
-                  <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                    <div className="text-sm text-gray-700">
-                      Showing {reportsStartIndex + 1} to {Math.min(reportsEndIndex, recentReports.length)} of {recentReports.length} results
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setReportsPage(prev => Math.max(1, prev - 1))}
-                        disabled={reportsPage === 1}
-                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => setReportsPage(prev => Math.min(reportsTotalPages, prev + 1))}
-                        disabled={reportsPage === reportsTotalPages}
-                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <input id="email" name="email" type="email" placeholder="Admin email" className={inputBase} value={formData.email} onChange={handleChange} />
             </div>
-          )}
 
-          {/* Other Navigation Views */}
-          {activeNav !== 'Dashboard' && (
-            <div className="bg-white rounded-lg shadow-sm p-12 border border-gray-100 text-center">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-2">{activeNav}</h2>
-              <p className="text-gray-500">This section is under development</p>
+            <div className="relative">
+              <div className={iconWrap}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <input id="password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Password" className={inputWithEye} value={formData.password} onChange={handleChange} />
+              <EyeIcon show={showPassword} toggle={() => setShowPassword(!showPassword)} />
             </div>
-          )}
-        </main>
+
+            <div className="relative">
+              <div className={iconWrap}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="Confirm password" className={inputWithEye} value={formData.confirmPassword} onChange={handleChange} />
+              <EyeIcon show={showConfirmPassword} toggle={() => setShowConfirmPassword(!showConfirmPassword)} />
+            </div>
+
+            <div className="relative">
+              <div className={iconWrap}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+              </div>
+              <input id="adminSecret" name="adminSecret" type="password" placeholder="Admin secret key" className={inputBase} value={formData.adminSecret} onChange={handleChange} autoComplete="off" />
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex justify-center items-center py-4 px-4 border border-transparent rounded-xl text-base font-bold text-white bg-slate-700 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Creating...' : 'Create Admin Account'}
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-slate-600">
+              Already have an admin account?{' '}
+              <Link to="/admin-login" className="font-semibold text-slate-600 hover:text-slate-800">
+                Admin login
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-export default AdminDashboard;
+export default AdminRegister;

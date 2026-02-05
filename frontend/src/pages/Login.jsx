@@ -46,7 +46,12 @@ const Login = () => {
           localStorage.setItem('user-role', response.data.user.role);
         }
         toast.success('Login successful');
-        navigate('/userdashboard');
+        const role = response.data.user?.role;
+        if (role === 'admin') {
+          navigate('/admindashboard');
+        } else {
+          navigate('/userdashboard');
+        }
       } else {
         const errorMsg = toErrorString(response.data?.message) ?? toErrorString(response.data?.error) ?? 'Login failed. Please check your credentials.';
         toast.error(errorMsg);

@@ -1,5 +1,9 @@
 const express=require('express');
 const { sequelize,connectDB } = require('./database/db');
+const User = require('./models/userModel');
+const Product = require('./models/productModel');
+Product.belongsTo(User, { as: 'owner', foreignKey: 'ownerId' });
+User.hasMany(Product, { foreignKey: 'ownerId' });
 const app=express();
 const port=3000;
 
@@ -12,7 +16,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use('/api/user/',require('./routes/route'));
-// app.use('/api/user/',require('./routes/productRoute'));
+app.use('/api/product/',require('./routes/productRoute'));
 
 
 app.get('/',(req,res)=>{

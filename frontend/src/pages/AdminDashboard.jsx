@@ -1,20 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { getAdminStats, getPendingApprovals, approveProduct as approveProductApi, rejectProduct as rejectProductApi } from '../services/api';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalOwners: 0,
+    activeListings: 0,
+    monthlyRevenue: 0,
+  });
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [statsRes, approvalsRes] = await Promise.all([
+        getAdminStats().catch(() => ({ data: { stats: null } })),
+        getPendingApprovals().catch(() => ({ data: { products: [] } })),
+      ]);
+      if (statsRes.data?.stats) {
+        setStats(statsRes.data.stats);
+      }
+      const products = approvalsRes.data?.products || [];
+      setPendingApprovals(products.map((p, i) => ({
+        id: p.id,
+        image: p.image || 'https://via.placeholder.com/80x60?text=Property',
+        ownerName: p.owner?.username || 'Unknown',
+        location: p.location || p.city || 'N/A',
+        price: p.price,
+      })));
+    } catch (err) {
+      toast.error('Failed to load dashboard data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token-37c');
+    localStorage.removeItem('user-role');
+    localStorage.removeItem('currentMode');
+    setShowProfileDropdown(false);
+    toast.success('Logged out successfully');
+    navigate('/login');
+  };
   const [activeNav, setActiveNav] = useState('Dashboard');
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [reportsPage, setReportsPage] = useState(1);
   const itemsPerPage = 5;
-
-  // Sample data - replace with actual API calls
-  const stats = {
-    totalUsers: 1247,
-    totalOwners: 342,
-    activeListings: 856,
-    monthlyRevenue: 2450000
-  };
 
   const cityData = [
     { city: 'Kathmandu', count: 420 },
@@ -24,45 +66,7 @@ const AdminDashboard = () => {
     { city: 'Dharan', count: 16 }
   ];
 
-  const maxCount = Math.max(...cityData.map(d => d.count));
-
-  const pendingApprovals = [
-    {
-      id: 1,
-      image: 'https://via.placeholder.com/80x60?text=Property',
-      ownerName: 'Rajesh Shrestha',
-      location: 'Thamel, Kathmandu',
-      price: 25000
-    },
-    {
-      id: 2,
-      image: 'https://via.placeholder.com/80x60?text=Property',
-      ownerName: 'Sita Gurung',
-      location: 'Lakeside, Pokhara',
-      price: 18000
-    },
-    {
-      id: 3,
-      image: 'https://via.placeholder.com/80x60?text=Property',
-      ownerName: 'Bikash Thapa',
-      location: 'Narayangadh, Chitwan',
-      price: 12000
-    },
-    {
-      id: 4,
-      image: 'https://via.placeholder.com/80x60?text=Property',
-      ownerName: 'Prakash Adhikari',
-      location: 'Butwal',
-      price: 15000
-    },
-    {
-      id: 5,
-      image: 'https://via.placeholder.com/80x60?text=Property',
-      ownerName: 'Anita Basnet',
-      location: 'Dharan',
-      price: 10000
-    }
-  ];
+  const maxCount = cityData.length ? Math.max(...cityData.map(d => d.count)) : 1;
 
   const recentReports = [
     {
@@ -118,15 +122,26 @@ const AdminDashboard = () => {
     { name: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' }
   ];
 
-  const handleApprove = (id) => {
-    toast.success(`Property ${id} approved successfully`);
-    // Add API call here
+  const handleApprove = async (id) => {
+    try {
+      await approveProductApi(id);
+      toast.success('Property approved successfully');
+      setPendingApprovals((prev) => prev.filter((p) => p.id !== id));
+      fetchDashboardData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to approve');
+    }
   };
 
-  const handleReject = (id) => {
-    if (window.confirm('Are you sure you want to reject this property?')) {
-      toast.error(`Property ${id} rejected`);
-      // Add API call here
+  const handleReject = async (id) => {
+    if (!window.confirm('Are you sure you want to reject this property?')) return;
+    try {
+      await rejectProductApi(id);
+      toast.success('Property rejected');
+      setPendingApprovals((prev) => prev.filter((p) => p.id !== id));
+      fetchDashboardData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reject');
     }
   };
 
@@ -211,10 +226,10 @@ const AdminDashboard = () => {
                 </button>
                 {showProfileDropdown && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</a>
-                    <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</a>
+                    <button onClick={() => { setShowProfileDropdown(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</button>
+                    <button onClick={() => { setShowProfileDropdown(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</button>
                     <hr className="my-2" />
-                    <a href="#" className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-50">Logout</a>
+                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">Logout</button>
                   </div>
                 )}
               </div>
@@ -224,7 +239,12 @@ const AdminDashboard = () => {
 
         {/* Dashboard Content */}
         <main className="flex-1 overflow-y-auto p-6">
-          {activeNav === 'Dashboard' && (
+          {loading && activeNav === 'Dashboard' && (
+            <div className="flex justify-center py-12">
+              <div className="text-teal-600">Loading...</div>
+            </div>
+          )}
+          {activeNav === 'Dashboard' && !loading && (
             <div className="space-y-6">
               {/* Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

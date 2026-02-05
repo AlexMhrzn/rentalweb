@@ -1,53 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { getMyProducts } from '../services/api';
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
   const [activeBottomNav, setActiveBottomNav] = useState('Dashboard');
+  const [loading, setLoading] = useState(true);
+  const [myProperties, setMyProperties] = useState([]);
 
-  // Sample data - replace with actual API calls
-  const stats = {
-    totalListings: 12,
-    activeRentals: 8,
-    pendingRequests: 5,
-    totalViews: 1247
+  useEffect(() => {
+    fetchMyProperties();
+  }, []);
+
+  const fetchMyProperties = async () => {
+    try {
+      setLoading(true);
+      const res = await getMyProducts();
+      const products = (res.data?.products || []).map((p) => ({
+        id: p.id,
+        image: p.image || 'https://via.placeholder.com/300x200?text=Property',
+        title: p.title,
+        status: p.status === 'active' ? 'Active' : p.status === 'rented' ? 'Rented' : p.status === 'pending' ? 'Pending' : 'Rejected',
+        price: p.price,
+        location: p.location || p.city || p.area || 'N/A',
+      }));
+      setMyProperties(products);
+    } catch (err) {
+      toast.error('Failed to load properties');
+      setMyProperties([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const myProperties = [
-    {
-      id: 1,
-      image: 'https://via.placeholder.com/300x200?text=Property',
-      title: 'Room for Rent in Koteshwor',
-      status: 'Active',
-      price: 15000,
-      location: 'Koteshwor, Kathmandu'
-    },
-    {
-      id: 2,
-      image: 'https://via.placeholder.com/300x200?text=Property',
-      title: '2 BHK Apartment in Thamel',
-      status: 'Rented',
-      price: 35000,
-      location: 'Thamel, Kathmandu'
-    },
-    {
-      id: 3,
-      image: 'https://via.placeholder.com/300x200?text=Property',
-      title: 'Studio Apartment in Baneshwor',
-      status: 'Pending',
-      price: 20000,
-      location: 'Baneshwor, Kathmandu'
-    },
-    {
-      id: 4,
-      image: 'https://via.placeholder.com/300x200?text=Property',
-      title: '1 BHK Flat in Patan',
-      status: 'Active',
-      price: 25000,
-      location: 'Patan, Lalitpur'
-    }
-  ];
+  const stats = {
+    totalListings: myProperties.length,
+    activeRentals: myProperties.filter((p) => p.status === 'Active' || p.status === 'Rented').length,
+    pendingRequests: myProperties.filter((p) => p.status === 'Pending').length,
+    totalViews: 0,
+  };
 
   const recentInquiries = [
     {
@@ -80,9 +72,33 @@ const OwnerDashboard = () => {
     }
   ];
 
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newProperty, setNewProperty] = useState({ title: '', price: '', location: '', city: '', category: 'Room' });
+  const [submitting, setSubmitting] = useState(false);
+
   const handlePostProperty = () => {
-    toast.success('Opening property posting form...');
-    // Navigate to post property page
+    setShowAddModal(true);
+  };
+
+  const handleSubmitProperty = async (e) => {
+    e?.preventDefault();
+    if (!newProperty.title || !newProperty.price) {
+      toast.error('Title and price are required');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const { createProduct } = await import('../services/api');
+      await createProduct(newProperty);
+      toast.success('Property submitted for approval');
+      setShowAddModal(false);
+      setNewProperty({ title: '', price: '', location: '', city: '', category: 'Room' });
+      fetchMyProperties();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handlePropertyAction = (action, propertyId) => {
@@ -211,6 +227,11 @@ const OwnerDashboard = () => {
         {/* My Properties Section */}
         <div>
           <h2 className="text-xl font-bold text-gray-800 mb-4">My Properties</h2>
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">Loading...</div>
+          ) : myProperties.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 bg-white rounded-2xl">No properties yet. Post your first property!</div>
+          ) : (
           <div className="space-y-4">
             {myProperties.map((property) => (
               <div key={property.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -265,6 +286,7 @@ const OwnerDashboard = () => {
               </div>
             ))}
           </div>
+          )}
         </div>
 
         {/* Recent Inquiries Section */}
@@ -382,6 +404,88 @@ const OwnerDashboard = () => {
           </button>
         </div>
       </nav>
+
+      {/* Add Property Modal */}
+      {showAddModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setShowAddModal(false)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl p-6 z-50 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Post New Property</h2>
+            <form onSubmit={handleSubmitProperty} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={newProperty.title}
+                  onChange={(e) => setNewProperty((p) => ({ ...p, title: e.target.value }))}
+                  placeholder="e.g. 2BHK Flat in Thamel"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price (NPR/month)</label>
+                <input
+                  type="number"
+                  value={newProperty.price}
+                  onChange={(e) => setNewProperty((p) => ({ ...p, price: e.target.value }))}
+                  placeholder="15000"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={newProperty.location}
+                  onChange={(e) => setNewProperty((p) => ({ ...p, location: e.target.value }))}
+                  placeholder="Thamel, Kathmandu"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <input
+                  type="text"
+                  value={newProperty.city}
+                  onChange={(e) => setNewProperty((p) => ({ ...p, city: e.target.value }))}
+                  placeholder="Kathmandu"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={newProperty.category}
+                  onChange={(e) => setNewProperty((p) => ({ ...p, category: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                >
+                  {['Room', 'Flat', 'House', 'Hostel', 'Office Space'].map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-2 bg-teal-600 text-white rounded-lg font-medium disabled:opacity-50"
+                >
+                  {submitting ? 'Submitting...' : 'Submit'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </>
+      )}
     </div>
   );
 };

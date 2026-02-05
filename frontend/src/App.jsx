@@ -24,20 +24,23 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/forget-password" element={<ForgetPassword />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/userdashboard" element={<UserDashboard />} />
+        <Route path="/userdashboard" element={
+          <ProtectedRoute allowedRoles={['user', 'admin']} element={<UserDashboard />} />
+        } />
         <Route path="/contact" element={<div> contact</div>} />
         <Route path="/about" element={<div> about</div>} />
-        <Route path="/admindashboard" element={<AdminDashboard />} />
-        <Route path="/ownerdashboard" element={<OwnerDashboard />} />
-        <Route path="/switchrole" element={<SwitchRole />} />
-
-        <Route path="/admindash" element={
-          <ProtectedRoute allowedRoles={['admin']} element={<AdminDashboard />}
-          />} />
+        <Route path="/admindashboard" element={
+          <ProtectedRoute allowedRoles={['admin']} element={<AdminDashboard />} />
+        } />
+        <Route path="/ownerdashboard" element={
+          <ProtectedRoute allowedRoles={['user', 'admin']} element={<OwnerDashboard />} />
+        } />
+        <Route path="/switchrole" element={
+          <ProtectedRoute allowedRoles={['user', 'admin']} element={<SwitchRole />} />
+        } />
 
         <Route path="/edituser/:id" element={
-          <ProtectedRoute allowedRoles={['admin']} element={<Edituser />}
-          />
+          <ProtectedRoute allowedRoles={['admin']} element={<Edituser />} />
         } />
       </Routes>
       <Footers />

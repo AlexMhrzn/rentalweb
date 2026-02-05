@@ -21,7 +21,7 @@ const SwitchRole = () => {
   const fetchUserData = async () => {
     try {
       const response = await getMe();
-      setUser(response.data);
+      setUser(response.data?.user || response.data);
     } catch (error) {
       toast.error('Failed to load user data');
       console.error(error);
@@ -60,18 +60,18 @@ const SwitchRole = () => {
 
   const getUserInitials = () => {
     if (!user) return 'U';
-    const name = user.name || user.fullName || '';
+    const name = user.username || user.name || user.fullName || '';
     return name
       .split(' ')
       .map(n => n[0])
       .join('')
       .toUpperCase()
-      .slice(0, 2) || 'U';
+      .slice(0, 2) || (user.email ? user.email[0].toUpperCase() : 'U');
   };
 
   const getUserName = () => {
     if (!user) return 'User';
-    return user.name || user.fullName || user.email?.split('@')[0] || 'User';
+    return user.username || user.name || user.fullName || user.email?.split('@')[0] || 'User';
   };
 
   const getUserEmail = () => {

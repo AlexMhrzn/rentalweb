@@ -1,85 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getProducts } from '../services/api';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+  const [listings, setListings] = useState([]);
 
   const locations = ['Kathmandu', 'Lalitpur', 'Bhaktapur', 'Pokhara', 'Butwal', 'Chitwan'];
   const categories = ['Room', 'Flat', 'House', 'Hostel', 'Office Space'];
 
-  const featuredListings = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop',
-      price: 15000,
-      area: 'Baneshwor',
-      city: 'Kathmandu'
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop',
-      price: 25000,
-      area: 'Lakeside',
-      city: 'Pokhara'
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop',
-      price: 18000,
-      area: 'Bharatpur',
-      city: 'Chitwan'
-    }
-  ];
+  useEffect(() => {
+    fetchListings();
+  }, [selectedLocation, selectedCategory]);
 
-  const nearbyRentals = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&h=200&fit=crop',
-      title: '2BHK Flat in Lalitpur',
-      location: 'Patan, Lalitpur',
-      price: 20000,
-      beds: 2,
-      baths: 2,
-      parking: true,
-      verified: true
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=200&fit=crop',
-      title: '1BHK Room in Kathmandu',
-      location: 'Thamel, Kathmandu',
-      price: 12000,
-      beds: 1,
-      baths: 1,
-      parking: false,
-      verified: true
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop',
-      title: '3BHK House in Bhaktapur',
-      location: 'Durbar Square, Bhaktapur',
-      price: 35000,
-      beds: 3,
-      baths: 2,
-      parking: true,
-      verified: false
-    },
-    {
-      id: 4,
-      image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=300&h=200&fit=crop',
-      title: 'Studio Flat in Pokhara',
-      location: 'Lakeside, Pokhara',
-      price: 15000,
-      beds: 1,
-      baths: 1,
-      parking: true,
-      verified: true
+  const fetchListings = async () => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (selectedLocation) params.city = selectedLocation;
+      if (selectedCategory) params.category = selectedCategory;
+      const res = await getProducts(params);
+      const products = res.data?.products || [];
+      setListings(products.map((p) => ({
+        id: p.id,
+        image: p.image || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop',
+        title: p.title,
+        price: p.price,
+        area: p.area || p.location,
+        city: p.city || 'N/A',
+        location: p.location || `${p.area || ''} ${p.city || ''}`.trim() || 'N/A',
+        beds: p.beds || 1,
+        baths: p.baths || 1,
+        parking: !!p.parking,
+        verified: !!p.verified,
+      })));
+    } catch (err) {
+      setListings([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const featuredListings = listings.slice(0, 3);
+  const nearbyRentals = listings;
 
   const toggleFavorite = (id) => {
     setFavorites(prev => {
@@ -179,6 +146,9 @@ const UserDashboard = () => {
         {/* Featured Listings Section */}
         <div>
           <h2 className="text-xl font-bold text-slate-900 mb-4">Featured Listings</h2>
+          {loading ? (
+            <div className="text-center py-8 text-slate-500">Loading listings...</div>
+          ) : (
           <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
             {featuredListings.map((listing) => (
               <div
@@ -225,11 +195,17 @@ const UserDashboard = () => {
               </div>
             ))}
           </div>
+          )}
         </div>
 
         {/* Nearby Rentals Section */}
         <div>
           <h2 className="text-xl font-bold text-slate-900 mb-4">Nearby Rentals</h2>
+          {loading ? (
+            <div className="text-center py-8 text-slate-500">Loading...</div>
+          ) : nearbyRentals.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 bg-white rounded-2xl">No rentals found. Try different filters.</div>
+          ) : (
           <div className="space-y-4">
             {nearbyRentals.map((rental) => (
               <div
@@ -358,6 +334,7 @@ const UserDashboard = () => {
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
 

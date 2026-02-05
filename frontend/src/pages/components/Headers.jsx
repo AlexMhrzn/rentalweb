@@ -58,7 +58,14 @@ const Headers = () => {
           >
             login
           </Link>
- 
+
+          <Link
+            to="/admin-login"
+            className="p-2 bg-slate-600 m-2 rounded-lg text-white hover:bg-slate-700"
+          >
+            admin
+          </Link>
+
           <Link
             to="/register"
             className="p-2 bg-red-400 m-2 rounded-lg text-white hover:bg-red-600"

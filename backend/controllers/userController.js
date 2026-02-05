@@ -16,7 +16,6 @@ const addUser=async(req,res)=>{
         }
 
         const hassed = await bcrypt.hash(password,10);
-        console.log(hassed);
 
         const newUser=await User.create({
             username,
@@ -32,6 +31,46 @@ const addUser=async(req,res)=>{
 
     }catch(error){
         res.status(500).json({message:"Error creating user",error: error.message});
+    }
+}
+
+const addAdminUser=async(req,res)=>{
+    try{
+        const {username,email,password,adminSecret}=req.body;
+        const secret=process.env.ADMIN_REGISTER_SECRET;
+        if(!secret || secret.trim()===''){
+            return res.status(500).json({success:false,message:"Admin registration is not configured"});
+        }
+        if(!adminSecret || adminSecret!==secret){
+            return res.status(403).json({success:false,message:"Invalid admin secret"});
+        }
+        if(!username || !email || !password){
+            return res.status(400).json({success:false,message:"All fields are required"});
+        }
+
+        const isUser = await User.findOne({where:{username}});
+        const isemail = await User.findOne({where:{email}});
+        if(isUser||isemail){
+            return res.json({success:false,message:"User already exists"});
+        }
+
+        const hassed = await bcrypt.hash(password,10);
+
+        const newUser=await User.create({
+            username,
+            email,
+            password: hassed,
+            role: 'admin'
+        });
+
+        res.status(201).json({
+            success:true,
+            message:"Admin account created successfully",
+            user:newUser
+        });
+
+    }catch(error){
+        res.status(500).json({message:"Error creating admin",error: error.message});
     }
 }
 
@@ -192,6 +231,6 @@ const getMe = async (req, res) => {
 }
 
 module.exports={
-    getAllUser,addUser,getUsersById,getActiveUsers,updateUser,deleteUser,
+    getAllUser,addUser,addAdminUser,getUsersById,getActiveUsers,updateUser,deleteUser,
     logInUser,getMe
 }

@@ -17,6 +17,15 @@ const UserDashboard = () => {
     fetchListings();
   }, [selectedLocation, selectedCategory]);
 
+  // Refetch when page becomes visible (e.g. switching back from another tab)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchListings();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [selectedLocation, selectedCategory]);
+
   const fetchListings = async () => {
     try {
       setLoading(true);
@@ -145,7 +154,19 @@ const UserDashboard = () => {
 
         {/* Featured Listings Section */}
         <div>
-          <h2 className="text-xl font-bold text-slate-900 mb-4">Featured Listings</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-900">Featured Listings</h2>
+            <button
+              onClick={() => fetchListings()}
+              disabled={loading}
+              className="px-3 py-1.5 text-sm font-medium text-teal-600 hover:bg-teal-50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
           {loading ? (
             <div className="text-center py-8 text-slate-500">Loading listings...</div>
           ) : (

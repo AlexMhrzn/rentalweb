@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const Product = require('../models/productModel');
 const User = require('../models/userModel');
 
@@ -5,8 +6,8 @@ const getAllProduct = async (req, res) => {
   try {
     const { city, category } = req.query;
     const where = { status: 'active' };
-    if (city) where.city = city;
-    if (category) where.category = category;
+    if (city && city.trim()) where.city = { [Op.iLike]: city.trim() };
+    if (category && category.trim()) where.category = { [Op.iLike]: category.trim() };
 
     const products = await Product.findAll({
       where,

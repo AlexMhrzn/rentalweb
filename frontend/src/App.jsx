@@ -5,6 +5,8 @@ import { Toaster } from 'react-hot-toast';
 import Headers from './pages/components/Headers';
 import Footers from './pages/components/Footers';
 import Login from './pages/Login';
+import AdminLogin from './pages/AdminLogin';
+import AdminRegister from './pages/AdminRegister';
 import ForgetPassword from './pages/ForgetPassword';
 import UserDashboard from './pages/UserDashboard';
 import Edituser from './pages/EditUser';
@@ -22,6 +24,8 @@ function App() {
       <Routes>
         <Route path="/" element={<SplashScreen />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/admin-register" element={<AdminRegister />} />
         <Route path="/forget-password" element={<ForgetPassword />} />
         <Route path="/register" element={<Register />} />
         <Route path="/userdashboard" element={

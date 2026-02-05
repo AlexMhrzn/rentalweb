@@ -23,6 +23,7 @@ const getConfig = () => ({
 });
 
 export const createUserApi=(data)=>ApiFormData.post('api/user/user',data);
+export const createAdminUserApi=(data)=>ApiFormData.post('api/user/admin-register',data);
 export const loginUserApi=(data)=>Api.post('api/user/loginuser',data);
 export const getUser = () => Api.get("/api/user/getalluser", getConfig());
 export const deleteUserById = (id) => Api.delete(`/api/user/deleteuserbyid/${id}`, getConfig());

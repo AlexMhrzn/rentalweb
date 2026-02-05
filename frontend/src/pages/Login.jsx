@@ -39,19 +39,19 @@ const Login = () => {
       console.log('Login response:', response);
       
       if (response.data && response.data.success) {
+        const role = response.data.user?.role;
+        if (role === 'admin') {
+          toast.error('Use the admin login for admin accounts.');
+          setIsSubmitting(false);
+          return;
+        }
         localStorage.setItem('token-37c', response.data.token);
         localStorage.setItem('currentMode', 'user');
-        // Store user role if available
         if (response.data.user && response.data.user.role) {
           localStorage.setItem('user-role', response.data.user.role);
         }
         toast.success('Login successful');
-        const role = response.data.user?.role;
-        if (role === 'admin') {
-          navigate('/admindashboard');
-        } else {
-          navigate('/userdashboard');
-        }
+        navigate('/userdashboard');
       } else {
         const errorMsg = toErrorString(response.data?.message) ?? toErrorString(response.data?.error) ?? 'Login failed. Please check your credentials.';
         toast.error(errorMsg);
@@ -324,7 +324,7 @@ const Login = () => {
           </form>
 
           {/* Bottom Text */}
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center space-y-2">
             <p className="text-sm text-slate-600">
               Don't have an account?{' '}
               <Link
@@ -332,6 +332,15 @@ const Login = () => {
                 className="font-semibold text-teal-600 hover:text-teal-700 transition-colors"
               >
                 Create an account
+              </Link>
+            </p>
+            <p className="text-sm text-slate-500">
+              Admin?{' '}
+              <Link
+                to="/admin-login"
+                className="font-semibold text-slate-600 hover:text-slate-700 transition-colors"
+              >
+                Admin login
               </Link>
             </p>
           </div>

@@ -77,6 +77,13 @@ const createProduct = async (req, res) => {
     if (!title || !price) {
       return res.status(400).json({ success: false, message: 'Title and price are required' });
     }
+    
+    // Get image from uploaded file or use placeholder
+    let imageUrl = 'https://via.placeholder.com/300x200?text=Property';
+    if (req.file) {
+      imageUrl = `uploads/${req.file.filename}`;
+    }
+    
     const product = await Product.create({
       title,
       description: description || '',
@@ -88,7 +95,7 @@ const createProduct = async (req, res) => {
       baths: baths ? parseInt(baths, 10) : 1,
       parking: !!parking,
       category: category || 'Room',
-      image: req.body.image || 'https://via.placeholder.com/300x200?text=Property',
+      image: imageUrl,
       status: 'pending',
       ownerId,
     });
@@ -103,6 +110,9 @@ const updateProduct = async (req, res) => {
     const { id } = req.params;
     const ownerId = req.user.id;
     const { title, description, price, location, city, area, beds, baths, parking, category } = req.body;
+    
+    console.log('updateProduct called:', { id, ownerId });
+    console.log('req.file:', req.file ? { fname: req.file.originalname, path: req.file.filename } : 'NO FILE');
 
     // Check if product exists
     const product = await Product.findByPk(id);
@@ -127,7 +137,16 @@ const updateProduct = async (req, res) => {
     if (baths) updateData.baths = parseInt(baths, 10);
     if (parking !== undefined) updateData.parking = !!parking;
     if (category) updateData.category = category;
-
+    
+    // Handle image update - only if new file is uploaded
+    if (req.file) {
+      console.log('Image file found, updating with:', `uploads/${req.file.filename}`);
+      updateData.image = `uploads/${req.file.filename}`;
+    } else {
+      console.log('No image file in request');
+    }
+    
+    console.log('updateData:', updateData);
     await product.update(updateData);
     return res.json({ success: true, message: 'Property updated successfully', product });
   } catch (error) {

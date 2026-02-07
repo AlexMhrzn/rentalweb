@@ -33,20 +33,25 @@ const UserDashboard = () => {
       if (selectedLocation) params.city = selectedLocation;
       if (selectedCategory) params.category = selectedCategory;
       const res = await getProducts(params);
+      const apiBase = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || '';
       const products = res.data?.products || [];
-      setListings(products.map((p) => ({
-        id: p.id,
-        image: p.image || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop',
-        title: p.title,
-        price: p.price,
-        area: p.area || p.location,
-        city: p.city || 'N/A',
-        location: p.location || `${p.area || ''} ${p.city || ''}`.trim() || 'N/A',
-        beds: p.beds || 1,
-        baths: p.baths || 1,
-        parking: !!p.parking,
-        verified: !!p.verified,
-      })));
+      setListings(products.map((p) => {
+        const img = p.image || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop';
+        const image = img.startsWith('http') ? img : (apiBase ? `${apiBase}/${img}` : img);
+        return {
+          id: p.id,
+          image,
+          title: p.title,
+          price: p.price,
+          area: p.area || p.location,
+          city: p.city || 'N/A',
+          location: p.location || `${p.area || ''} ${p.city || ''}`.trim() || 'N/A',
+          beds: p.beds || 1,
+          baths: p.baths || 1,
+          parking: !!p.parking,
+          verified: !!p.verified,
+        };
+      }));
     } catch (err) {
       setListings([]);
     } finally {

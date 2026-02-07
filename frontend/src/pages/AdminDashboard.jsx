@@ -37,14 +37,19 @@ const AdminDashboard = () => {
       if (statsRes.data?.stats) {
         setStats(statsRes.data.stats);
       }
+      const apiBase = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || '';
       const products = approvalsRes.data?.products || [];
-      setPendingApprovals(products.map((p, i) => ({
-        id: p.id,
-        image: p.image || 'https://via.placeholder.com/80x60?text=Property',
-        ownerName: p.owner?.username || 'Unknown',
-        location: p.location || p.city || 'N/A',
-        price: p.price,
-      })));
+      setPendingApprovals(products.map((p, i) => {
+        const img = p.image || 'https://via.placeholder.com/80x60?text=Property';
+        const image = img.startsWith('http') ? img : (apiBase ? `${apiBase}/${img}` : img);
+        return {
+          id: p.id,
+          image,
+          ownerName: p.owner?.username || 'Unknown',
+          location: p.location || p.city || 'N/A',
+          price: p.price,
+        };
+      }));
     } catch (err) {
       toast.error('Failed to load dashboard data');
       console.error(err);

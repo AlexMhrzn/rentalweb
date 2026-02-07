@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getMyProducts, getProductById, updateProduct, deleteProduct } from '../services/api';
@@ -33,6 +33,10 @@ const OwnerDashboard = () => {
   const [deletingPropertyId, setDeletingPropertyId] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  // File input refs
+  const addImageInputRef = useRef(null);
+  const editImageInputRef = useRef(null);
+
   useEffect(() => {
     fetchMyProperties();
   }, []);
@@ -40,6 +44,7 @@ const OwnerDashboard = () => {
   const handleAddImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      console.log('Add image selected:', file.name, file.size);
       setNewPropertyImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -52,6 +57,7 @@ const OwnerDashboard = () => {
   const handleEditImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      console.log('Edit image selected:', file.name, file.size);
       setEditPropertyImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -65,14 +71,19 @@ const OwnerDashboard = () => {
     try {
       setLoading(true);
       const res = await getMyProducts();
-      const products = (res.data?.products || []).map((p) => ({
-        id: p.id,
-        image: p.image || 'https://via.placeholder.com/300x200?text=Property',
-        title: p.title,
-        status: p.status === 'active' ? 'Active' : p.status === 'rented' ? 'Rented' : p.status === 'pending' ? 'Pending' : 'Rejected',
-        price: p.price,
-        location: p.location || p.city || p.area || 'N/A',
-      }));
+      const apiBase = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || '';
+      const products = (res.data?.products || []).map((p) => {
+        const img = p.image || 'https://via.placeholder.com/300x200?text=Property';
+        const image = img.startsWith('http') ? img : (apiBase ? `${apiBase}/${img}` : img);
+        return {
+          id: p.id,
+          image,
+          title: p.title,
+          status: p.status === 'active' ? 'Active' : p.status === 'rented' ? 'Rented' : p.status === 'pending' ? 'Pending' : 'Rejected',
+          price: p.price,
+          location: p.location || p.city || p.area || 'N/A',
+        };
+      });
       setMyProperties(products);
     } catch (err) {
       toast.error('Failed to load properties');
@@ -133,10 +144,14 @@ const OwnerDashboard = () => {
     try {
       setSubmitting(true);
       const { createProduct } = await import('../services/api');
-      await createProduct(newProperty);
+      console.log('Submitting property with image:', newPropertyImage);
+      await createProduct(newProperty, newPropertyImage);
       toast.success('Property submitted for approval');
       setShowAddModal(false);
       setNewProperty({ title: '', price: '', location: '', city: '', category: 'Room' });
+      setNewPropertyImage(null);
+      setNewPropertyImagePreview(null);
+      if (addImageInputRef.current) addImageInputRef.current.value = '';
       fetchMyProperties();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit');
@@ -175,7 +190,10 @@ const OwnerDashboard = () => {
     try {
       const res = await getProductById(propertyId);
       if (res.data?.product) {
-        setViewingProperty(res.data.product);
+        const apiBase = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || '';
+        const prod = res.data.product;
+        if (prod.image && !prod.image.startsWith('http')) prod.image = apiBase ? `${apiBase}/${prod.image}` : prod.image;
+        setViewingProperty(prod);
         setShowViewModal(true);
       }
     } catch (err) {
@@ -197,6 +215,10 @@ const OwnerDashboard = () => {
           category: product.category || 'Room',
           description: product.description || '',
         });
+        const apiBase = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || '';
+        const img = product.image || null;
+        setEditPropertyImagePreview(img && !img.startsWith('http') && apiBase ? `${apiBase}/${img}` : img || null);
+        setEditPropertyImage(null);
         setShowEditModal(true);
       }
     } catch (err) {
@@ -212,11 +234,17 @@ const OwnerDashboard = () => {
     }
     try {
       setEditSubmitting(true);
-      await updateProduct(editingProperty.id, editFormData);
+      console.log('Submitting edit - Image state:', editPropertyImage ? 'YES' : 'NO');
+      console.log('Image file details:', editPropertyImage);
+      console.log('Edit form data:', editFormData);
+      await updateProduct(editingProperty.id, editFormData, editPropertyImage);
       toast.success('Property updated successfully');
       setShowEditModal(false);
       setEditingProperty(null);
       setEditFormData({ title: '', price: '', location: '', city: '', category: 'Room', description: '' });
+      setEditPropertyImage(null);
+      setEditPropertyImagePreview(null);
+      if (editImageInputRef.current) editImageInputRef.current.value = '';
       fetchMyProperties();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update property');
@@ -585,6 +613,21 @@ const OwnerDashboard = () => {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Property Photo</label>
+                <input
+                  ref={addImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAddImageChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                {newPropertyImagePreview && (
+                  <div className="mt-2">
+                    <img src={newPropertyImagePreview} alt="Preview" className="w-full h-40 object-cover rounded-lg" />
+                  </div>
+                )}
+              </div>
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -676,6 +719,21 @@ const OwnerDashboard = () => {
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Property Photo</label>
+                <input
+                  ref={editImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleEditImageChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                {editPropertyImagePreview && (
+                  <div className="mt-2">
+                    <img src={editPropertyImagePreview} alt="Preview" className="w-full h-40 object-cover rounded-lg" />
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 pt-4">
                 <button

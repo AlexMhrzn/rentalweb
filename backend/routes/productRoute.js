@@ -14,16 +14,17 @@ const {
 } = require('../controllers/productController');
 const authGuard = require('../helpers/authguagrd');
 const isAdmin = require('../helpers/isAdmin');
+const fileUpload = require('../helpers/multer');
 
 express.get('/products', getAllProduct);
-express.get('/my', authGuard, getProductsByOwner);
 express.get('/pending', authGuard, isAdmin, getPendingApprovals);
-express.get('/:id', getProductById);
+express.get('/admin/stats', authGuard, isAdmin, getAdminStats);
+express.get('/my', authGuard, getProductsByOwner);
 express.post('/approve/:id', authGuard, isAdmin, approveProduct);
 express.post('/reject/:id', authGuard, isAdmin, rejectProduct);
-express.post('/', authGuard, createProduct);
-express.put('/:id', authGuard, updateProduct);
+express.get('/:id', getProductById);
+express.post('/', authGuard, fileUpload('image'), createProduct);
+express.put('/:id', authGuard, fileUpload('image'), updateProduct);
 express.delete('/:id', authGuard, deleteProduct);
-express.get('/admin/stats', authGuard, isAdmin, getAdminStats);
 
 module.exports = express;

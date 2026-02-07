@@ -3,9 +3,6 @@ import axios from 'axios';
 const ApiFormData=axios.create({
     baseURL:import.meta.env.VITE_API_BASE_URL,
     withCredentials:true,
-    headers:{
-        "Content-Type":"multipart/form-data",
-    },
 });
 
 const Api=axios.create({
@@ -17,6 +14,12 @@ const Api=axios.create({
 });
 
 const getConfig = () => ({
+  headers: {
+    authorization: `Bearer ${localStorage.getItem("token-37c")}`,
+  },
+});
+
+const getFormDataConfig = () => ({
   headers: {
     authorization: `Bearer ${localStorage.getItem("token-37c")}`,
   },
@@ -38,7 +41,44 @@ export const getProductById = (id) => Api.get(`/api/product/${id}`);
 export const getPendingApprovals = () => Api.get("/api/product/pending", getConfig());
 export const approveProduct = (id) => Api.post(`/api/product/approve/${id}`, {}, getConfig());
 export const rejectProduct = (id) => Api.post(`/api/product/reject/${id}`, {}, getConfig());
-export const createProduct = (data) => Api.post("/api/product/", data, getConfig());
-export const updateProduct = (id, data) => Api.put(`/api/product/${id}`, data, getConfig());
+export const createProduct = (data, imageFile) => {
+  if (imageFile) {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('price', data.price);
+    formData.append('location', data.location);
+    formData.append('city', data.city);
+    formData.append('category', data.category);
+    formData.append('description', data.description || '');
+    formData.append('image', imageFile);
+    return ApiFormData.post("/api/product/", formData, getFormDataConfig());
+  }
+  return Api.post("/api/product/", data, getConfig());
+};
+export const updateProduct = (id, data, imageFile) => {
+  if (imageFile) {
+    console.log('updateProduct: Creating FormData for PUT with image');
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('price', data.price);
+    formData.append('location', data.location);
+    formData.append('city', data.city);
+    formData.append('category', data.category);
+    formData.append('description', data.description || '');
+    formData.append('image', imageFile);
+    console.log('updateProduct: FormData entries:', {
+      title: data.title,
+      price: data.price,
+      location: data.location,
+      city: data.city,
+      category: data.category,
+      description: data.description || '',
+      image: `${imageFile.name} (${imageFile.size} bytes)`
+    });
+    return ApiFormData.put(`/api/product/${id}`, formData, getFormDataConfig());
+  }
+  console.log('updateProduct: No image, sending JSON PUT');
+  return Api.put(`/api/product/${id}`, data, getConfig());
+};
 export const deleteProduct = (id) => Api.delete(`/api/product/${id}`, getConfig());
 export const getAdminStats = () => Api.get("/api/product/admin/stats", getConfig());

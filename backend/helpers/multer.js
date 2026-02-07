@@ -6,7 +6,7 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const fileName = file?.originalname?.replace(/\s/g, "_");
-        cb(null, fileName);
+        cb(null, `${Date.now()}_${fileName}`);
     },
 });
 
@@ -18,20 +18,23 @@ var fileFilter = (req, file, callback) => {
 }
 
 const fileUpload = (fieldName) => (req, res, next) => {
+    console.log(`[Multer] Processing upload for field: ${fieldName}`);
     multer({
         storage,
         fileFilter: fileFilter,
-    }).array(fieldName, 100)(req, res, (err) => {
+    }).single(fieldName)(req, res, (err) => {
         if (err) {
+            console.log(`[Multer] Error: ${err.message}`);
             return res.status(400).json({ error: err.message });
         }
-    if (req.files) {
-        console.log("Uploaded Files:");
-        req.files.forEach(file => {
-            console.log(`- ${file.originalname} -> ${file.filename}`);
-        });
-    }
-
+        if (req.file) {
+            console.log("Uploaded File:");
+            console.log(`- ${req.file.originalname} -> ${req.file.filename}`);
+            console.log(`- Size: ${req.file.size} bytes`);
+            console.log(`- Full path: ${req.file.path}`);
+        } else {
+            console.log(`[Multer] No file uploaded for field: ${fieldName}`);
+        }
         next();
     });
 };

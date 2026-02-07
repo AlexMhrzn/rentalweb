@@ -82,6 +82,8 @@ const OwnerDashboard = () => {
           status: p.status === 'active' ? 'Active' : p.status === 'rented' ? 'Rented' : p.status === 'pending' ? 'Pending' : 'Rejected',
           price: p.price,
           location: p.location || p.city || p.area || 'N/A',
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
         };
       });
       setMyProperties(products);
@@ -193,6 +195,9 @@ const OwnerDashboard = () => {
         const apiBase = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || '';
         const prod = res.data.product;
         if (prod.image && !prod.image.startsWith('http')) prod.image = apiBase ? `${apiBase}/${prod.image}` : prod.image;
+        // ensure createdAt/updatedAt are present on the viewing object
+        prod.createdAt = prod.createdAt || prod.dataValues?.createdAt;
+        prod.updatedAt = prod.updatedAt || prod.dataValues?.updatedAt;
         setViewingProperty(prod);
         setShowViewModal(true);
       }
@@ -399,6 +404,12 @@ const OwnerDashboard = () => {
                           {property.title}
                         </h3>
                         <p className="text-xs text-gray-500 mb-2">{property.location}</p>
+                        <p className="text-xs text-gray-400">
+                          Posted: {property.createdAt ? new Date(property.createdAt).toLocaleString() : 'N/A'}
+                          {property.updatedAt && property.updatedAt !== property.createdAt ? (
+                            <span> • Edited: {new Date(property.updatedAt).toLocaleString()}</span>
+                          ) : null}
+                        </p>
                         <p className="text-lg font-bold text-teal-600">
                           NPR {property.price.toLocaleString()}/mo
                         </p>
@@ -780,6 +791,14 @@ const OwnerDashboard = () => {
                 alt={viewingProperty.title}
                 className="w-full h-64 object-cover rounded-xl"
               />
+            </div>
+
+            {/* Posted / Edited Info */}
+            <div className="mb-4 text-sm text-gray-500">
+              <div>Posted: {viewingProperty.createdAt ? new Date(viewingProperty.createdAt).toLocaleString() : 'N/A'}</div>
+              {viewingProperty.updatedAt && viewingProperty.updatedAt !== viewingProperty.createdAt && (
+                <div>Edited: {new Date(viewingProperty.updatedAt).toLocaleString()}</div>
+              )}
             </div>
 
             {/* Status Badge */}

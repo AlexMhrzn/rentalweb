@@ -35,22 +35,24 @@ const UserDashboard = () => {
       const res = await getProducts(params);
       const apiBase = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || '';
       const products = res.data?.products || [];
-      setListings(products.map((p) => {
-        const img = p.image || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop';
-        const image = img.startsWith('http') ? img : (apiBase ? `${apiBase}/${img}` : img);
-        return {
-          id: p.id,
-          image,
-          title: p.title,
-          price: p.price,
-          area: p.area || p.location,
-          city: p.city || 'N/A',
-          location: p.location || `${p.area || ''} ${p.city || ''}`.trim() || 'N/A',
-          beds: p.beds || 1,
-          baths: p.baths || 1,
-          parking: !!p.parking,
-          verified: !!p.verified,
-        };
+        setListings(products.map((p) => {
+          const img = p.image || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop';
+          const image = img.startsWith('http') ? img : (apiBase ? `${apiBase}/${img}` : img);
+          return {
+            id: p.id,
+            image,
+            title: p.title,
+            price: p.price,
+            area: p.area || p.location,
+            city: p.city || 'N/A',
+            location: p.location || `${p.area || ''} ${p.city || ''}`.trim() || 'N/A',
+            beds: p.beds || 1,
+            baths: p.baths || 1,
+            parking: !!p.parking,
+            verified: !!p.verified,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+          };
       }));
     } catch (err) {
       setListings([]);
@@ -217,6 +219,7 @@ const UserDashboard = () => {
                     <span className="text-sm text-slate-500">/ month</span>
                   </div>
                   <p className="text-sm font-medium text-slate-700">{listing.area}, {listing.city}</p>
+                  <p className="text-xs text-slate-400">Posted: {listing.createdAt ? new Date(listing.createdAt).toLocaleString() : 'N/A'}{listing.updatedAt && listing.updatedAt !== listing.createdAt ? ` • Edited: ${new Date(listing.updatedAt).toLocaleString()}` : ''}</p>
                 </div>
               </div>
             ))}
@@ -290,6 +293,7 @@ const UserDashboard = () => {
                       </svg>
                       <span>{rental.location}</span>
                     </div>
+                    <p className="text-xs text-slate-400 mb-2">Posted: {rental.createdAt ? new Date(rental.createdAt).toLocaleString() : 'N/A'}{rental.updatedAt && rental.updatedAt !== rental.createdAt ? ` • Edited: ${new Date(rental.updatedAt).toLocaleString()}` : ''}</p>
                     <div className="flex items-baseline gap-1 mb-3">
                       <span className="text-xl font-bold text-teal-600">Rs. {rental.price.toLocaleString()}</span>
                       <span className="text-xs text-slate-500">/ month</span>

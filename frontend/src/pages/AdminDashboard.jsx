@@ -45,6 +45,8 @@ const AdminDashboard = () => {
         return {
           id: p.id,
           image,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
           ownerName: p.owner?.username || 'Unknown',
           location: p.location || p.city || 'N/A',
           price: p.price,
@@ -374,7 +376,10 @@ const AdminDashboard = () => {
                       {pendingApprovals.slice(startIndex, endIndex).map((approval) => (
                         <tr key={approval.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <img src={approval.image} alt="Property" className="w-20 h-16 object-cover rounded" />
+                            <div className="flex flex-col items-start">
+                              <img src={approval.image} alt="Property" className="w-20 h-16 object-cover rounded" />
+                              <div className="text-xs text-gray-400 mt-1">Posted: {approval.createdAt ? new Date(approval.createdAt).toLocaleString() : 'N/A'}</div>
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">{approval.ownerName}</div>

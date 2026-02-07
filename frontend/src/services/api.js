@@ -34,8 +34,11 @@ export const getMe = () => Api.get("/api/user/me", getConfig());
 // Product/Property APIs
 export const getProducts = (params) => Api.get("/api/product/products", { params });
 export const getMyProducts = () => Api.get("/api/product/my", getConfig());
+export const getProductById = (id) => Api.get(`/api/product/${id}`);
 export const getPendingApprovals = () => Api.get("/api/product/pending", getConfig());
 export const approveProduct = (id) => Api.post(`/api/product/approve/${id}`, {}, getConfig());
 export const rejectProduct = (id) => Api.post(`/api/product/reject/${id}`, {}, getConfig());
 export const createProduct = (data) => Api.post("/api/product/", data, getConfig());
+export const updateProduct = (id, data) => Api.put(`/api/product/${id}`, data, getConfig());
+export const deleteProduct = (id) => Api.delete(`/api/product/${id}`, getConfig());
 export const getAdminStats = () => Api.get("/api/product/admin/stats", getConfig());

@@ -98,6 +98,80 @@ const createProduct = async (req, res) => {
   }
 };
 
+const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ownerId = req.user.id;
+    const { title, description, price, location, city, area, beds, baths, parking, category } = req.body;
+
+    // Check if product exists
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Property not found' });
+    }
+
+    // Check if user is the owner
+    if (product.ownerId !== ownerId) {
+      return res.status(403).json({ success: false, message: 'You are not authorized to edit this property' });
+    }
+
+    // Update the product
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (price) updateData.price = parseInt(price, 10);
+    if (location) updateData.location = location;
+    if (city) updateData.city = city;
+    if (area) updateData.area = area;
+    if (beds) updateData.beds = parseInt(beds, 10);
+    if (baths) updateData.baths = parseInt(baths, 10);
+    if (parking !== undefined) updateData.parking = !!parking;
+    if (category) updateData.category = category;
+
+    await product.update(updateData);
+    return res.json({ success: true, message: 'Property updated successfully', product });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error updating product', error: error.message });
+  }
+};
+
+const getProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Property not found' });
+    }
+    return res.json({ success: true, product });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error fetching product', error: error.message });
+  }
+};
+
+const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ownerId = req.user.id;
+
+    // Check if product exists
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Property not found' });
+    }
+
+    // Check if user is the owner
+    if (product.ownerId !== ownerId) {
+      return res.status(403).json({ success: false, message: 'You are not authorized to delete this property' });
+    }
+
+    // Delete the product
+    await product.destroy();
+    return res.json({ success: true, message: 'Property deleted successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error deleting product', error: error.message });
+  }
+};
+
 const getAdminStats = async (req, res) => {
   try {
     const totalUsers = await User.count({ where: { role: 'user' } });
@@ -126,5 +200,8 @@ module.exports = {
   approveProduct,
   rejectProduct,
   createProduct,
+  updateProduct,
+  getProductById,
+  deleteProduct,
   getAdminStats,
 };

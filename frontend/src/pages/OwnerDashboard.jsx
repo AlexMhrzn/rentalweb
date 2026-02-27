@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getMyProducts, getProductById, updateProduct, deleteProduct } from '../services/api';
+import { getMyProducts, getProductById, updateProduct, deleteProduct, getMe, updateProfile } from '../services/api';
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
   const [activeBottomNav, setActiveBottomNav] = useState('Dashboard');
   const [loading, setLoading] = useState(true);
   const [myProperties, setMyProperties] = useState([]);
+  const [user, setUser] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef(null);
   
   // Add Property Modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -39,7 +42,17 @@ const OwnerDashboard = () => {
 
   useEffect(() => {
     fetchMyProperties();
+    loadUser();
   }, []);
+
+  const loadUser = async () => {
+    try {
+      const res = await getMe();
+      setUser(res.data.user);
+    } catch (e) {
+      console.warn('failed to load user', e);
+    }
+  };
 
   const handleAddImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -298,9 +311,51 @@ const OwnerDashboard = () => {
                 </svg>
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              {/* Profile Avatar */}
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold shadow-md">
-                O
+              {/* Profile Avatar: click to upload new photo */}
+              <div className="relative">
+                <div
+                  onClick={() => avatarInputRef.current && avatarInputRef.current.click()}
+                  className="w-10 h-10 rounded-full overflow-hidden cursor-pointer"
+                  title="Change profile photo"
+                >
+                  {user?.profile_image ? (
+                    <img
+                      src={user.profile_image.startsWith('http') ? user.profile_image : `${import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || ''}/${user.profile_image}`}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold w-full h-full">
+                      {user?.username?.charAt(0).toUpperCase() || 'O'}
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      setUploadingAvatar(true);
+                      const data = new FormData();
+                      data.append('image', file);
+                      const res = await updateProfile(data);
+                      if (res.data.success) {
+                        toast.success('Avatar updated');
+                        loadUser();
+                      } else {
+                        toast.error(res.data.message || 'Upload failed');
+                      }
+                    } catch (err) {
+                      toast.error(err.response?.data?.message || 'Failed to upload avatar');
+                    } finally {
+                      setUploadingAvatar(false);
+                    }
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -309,83 +364,85 @@ const OwnerDashboard = () => {
 
       {/* Main Content */}
       <main className="px-4 py-6 space-y-6">
-        {/* Summary Stat Cards */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Total Listings */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
+        {activeBottomNav === 'Dashboard' && (
+          <>
+            {/* Summary Stat Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Total Listings */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mb-1">Total Listings</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.totalListings}</p>
+              </div>
+
+              {/* Active Rentals */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mb-1">Active Rentals</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.activeRentals}</p>
+              </div>
+
+              {/* Pending Requests */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mb-1">Pending Requests</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.pendingRequests}</p>
+              </div>
+
+              {/* Total Views */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mb-1">Total Views</p>
+                <p className="text-2xl font-bold text-gray-800">{stats.totalViews.toLocaleString()}</p>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mb-1">Total Listings</p>
-            <p className="text-2xl font-bold text-gray-800">{stats.totalListings}</p>
-          </div>
 
-          {/* Active Rentals */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mb-1">Active Rentals</p>
-            <p className="text-2xl font-bold text-gray-800">{stats.activeRentals}</p>
-          </div>
+            {/* Primary Action Button */}
+            <button
+              onClick={handlePostProperty}
+              className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white font-semibold py-4 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>+ Post New Property</span>
+            </button>
 
-          {/* Pending Requests */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mb-1">Pending Requests</p>
-            <p className="text-2xl font-bold text-gray-800">{stats.pendingRequests}</p>
-          </div>
-
-          {/* Total Views */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mb-1">Total Views</p>
-            <p className="text-2xl font-bold text-gray-800">{stats.totalViews.toLocaleString()}</p>
-          </div>
-        </div>
-
-        {/* Primary Action Button */}
-        <button
-          onClick={handlePostProperty}
-          className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white font-semibold py-4 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>+ Post New Property</span>
-        </button>
-
-        {/* My Properties Section */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">My Properties</h2>
-          {loading ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
-          ) : myProperties.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 bg-white rounded-2xl">No properties yet. Post your first property!</div>
-          ) : (
-          <div className="space-y-4">
-            {myProperties.map((property) => (
+            {/* My Properties Section */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">My Properties</h2>
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">Loading...</div>
+              ) : myProperties.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 bg-white rounded-2xl">No properties yet. Post your first property!</div>
+              ) : (
+              <div className="space-y-4">
+                {myProperties.map((property) => (
               <div key={property.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 <div className="flex">
                   {/* Property Image */}
@@ -447,44 +504,93 @@ const OwnerDashboard = () => {
           )}
         </div>
 
-        {/* Recent Inquiries Section */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Inquiries</h2>
-          <div className="space-y-3">
-            {recentInquiries.map((inquiry) => (
-              <div key={inquiry.id} className="bg-white rounded-2xl p-4 shadow-sm">
-                <div className="flex items-start space-x-3">
-                  {/* Avatar */}
-                  <img
-                    src={inquiry.avatar}
-                    alt={inquiry.renterName}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  {/* Inquiry Details */}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-1">
-                      <div>
-                        <h3 className="text-sm font-semibold text-gray-800">
-                          {inquiry.renterName}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {inquiry.propertyName}
-                        </p>
+          </>
+        )}
+
+        {activeBottomNav === 'Listings' && (
+          <>
+            {/* Listings only: add button + my properties list */}
+            <button
+              onClick={handlePostProperty}
+              className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white font-semibold py-4 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>+ Post New Property</span>
+            </button>
+
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">My Properties</h2>
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">Loading...</div>
+              ) : myProperties.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 bg-white rounded-2xl">No properties yet. Post your first property!</div>
+              ) : (
+              <div className="space-y-4">
+                {myProperties.map((property) => (
+                  <div key={property.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div className="flex">
+                      {/* Property Image */}
+                      <div className="w-32 h-32 flex-shrink-0">
+                        <img
+                          src={property.image}
+                          alt={property.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <span className="text-xs text-gray-400">{inquiry.time}</span>
+                      {/* Property Details */}
+                      <div className="flex-1 p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2">
+                              {property.title}
+                            </h3>
+                            <p className="text-xs text-gray-500 mb-2">{property.location}</p>
+                            <p className="text-xs text-gray-400">
+                              Posted: {property.createdAt ? new Date(property.createdAt).toLocaleString() : 'N/A'}
+                              {property.updatedAt && property.updatedAt !== property.createdAt ? (
+                                <span> • Edited: {new Date(property.updatedAt).toLocaleString()}</span>
+                              ) : null}
+                            </p>
+                            <p className="text-lg font-bold text-teal-600">
+                              NPR {property.price.toLocaleString()}/mo
+                            </p>
+                          </div>
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(property.status)}`}>
+                            {property.status}
+                          </span>
+                        </div>
+                        {/* Action Buttons */}
+                        <div className="flex space-x-2 mt-3">
+                          <button
+                            onClick={() => handlePropertyAction('Edit', property.id)}
+                            className="flex-1 bg-teal-50 text-teal-600 text-xs font-semibold py-2 rounded-lg hover:bg-teal-100 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handlePropertyAction('View', property.id)}
+                            className="flex-1 bg-gray-50 text-gray-600 text-xs font-semibold py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => handlePropertyAction('Delete', property.id)}
+                            className="flex-1 bg-red-50 text-red-600 text-xs font-semibold py-2 rounded-lg hover:bg-red-100 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleReply(inquiry.id)}
-                      className="mt-2 bg-teal-500 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors"
-                    >
-                      Reply
-                    </button>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+              )}
+            </div>
+          </>
+        )}
       </main>
 
       {/* Bottom Navigation Bar */}
@@ -532,24 +638,27 @@ const OwnerDashboard = () => {
             <span className="text-xs font-medium">Add</span>
           </button>
 
-          {/* Messages */}
+          {/* Requests (formerly Messages) */}
           <button
-            onClick={() => setActiveBottomNav('Messages')}
+            onClick={() => {
+              setActiveBottomNav('Request');
+              navigate('/requests');
+            }}
             className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-colors ${
-              activeBottomNav === 'Messages' ? 'text-teal-600' : 'text-gray-400'
+              activeBottomNav === 'Request' ? 'text-teal-600' : 'text-gray-400'
             }`}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <span className="text-xs font-medium">Messages</span>
+            <span className="text-xs font-medium">Request</span>
           </button>
 
           {/* Profile */}
           <button
             onClick={() => {
               setActiveBottomNav('Profile');
-              navigate('/switchrole');
+              navigate('/profile');
             }}
             className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-colors ${
               activeBottomNav === 'Profile' ? 'text-teal-600' : 'text-gray-400'
@@ -560,6 +669,7 @@ const OwnerDashboard = () => {
             </svg>
             <span className="text-xs font-medium">Profile</span>
           </button>
+
         </div>
       </nav>
 

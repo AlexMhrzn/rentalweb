@@ -1,21 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getProducts } from '../services/api';
+import { getProducts, addFavorite, removeFavorite, getMyFavorites, createBookingRequest, getMe, updateProfile } from '../services/api';
+import toast from 'react-hot-toast';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchInput, setSearchInput] = useState('');
   const [favorites, setFavorites] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState([]);
+  const [user, setUser] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef(null);
 
   const locations = ['Kathmandu', 'Lalitpur', 'Bhaktapur', 'Pokhara', 'Butwal', 'Chitwan'];
   const categories = ['Room', 'Flat', 'House', 'Hostel', 'Office Space'];
 
   useEffect(() => {
     fetchListings();
+    loadUser();
   }, [selectedLocation, selectedCategory]);
+
+  const loadUser = async () => {
+    try {
+      const res = await getMe();
+      setUser(res.data.user);
+    } catch (e) {
+      console.warn('failed to load user', e);
+    }
+  };
+
+  // fetch favorites once on mount
+  useEffect(() => {
+    const loadFavs = async () => {
+      try {
+        const res = await getMyFavorites();
+        const favProducts = res.data?.products || [];
+        setFavorites(new Set(favProducts.map((p) => p.id)));
+      } catch (err) {
+        // ignore
+      }
+    };
+    loadFavs();
+  }, []);
 
   // Refetch when page becomes visible (e.g. switching back from another tab)
   useEffect(() => {
@@ -40,6 +69,7 @@ const UserDashboard = () => {
           const image = img.startsWith('http') ? img : (apiBase ? `${apiBase}/${img}` : img);
           return {
             id: p.id,
+            ownerId: p.owner?.id || p.ownerId || null,
             image,
             title: p.title,
             price: p.price,
@@ -64,16 +94,60 @@ const UserDashboard = () => {
   const featuredListings = listings.slice(0, 3);
   const nearbyRentals = listings;
 
-  const toggleFavorite = (id) => {
-    setFavorites(prev => {
+  const toggleFavorite = async (id) => {
+    const isFav = favorites.has(id);
+    // optimistic update
+    setFavorites((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
+      if (isFav) newSet.delete(id); else newSet.add(id);
       return newSet;
     });
+    try {
+      if (isFav) {
+        await removeFavorite(id);
+      } else {
+        await addFavorite(id);
+      }
+    } catch (err) {
+      // revert on failure
+      setFavorites((prev) => {
+        const newSet = new Set(prev);
+        if (isFav) newSet.add(id); else newSet.delete(id);
+        return newSet;
+      });
+    }
+  };
+
+  // Booking / Request Visit modal state
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestProductId, setRequestProductId] = useState(null);
+  const [requestOwnerId, setRequestOwnerId] = useState(null);
+  const [requestDate, setRequestDate] = useState('');
+  const [requestMessage, setRequestMessage] = useState('');
+  const [requesting, setRequesting] = useState(false);
+
+  const openRequestModal = (ownerId, productId) => {
+    setRequestOwnerId(ownerId || null);
+    setRequestProductId(productId || null);
+    setRequestDate('');
+    setRequestMessage('');
+    setShowRequestModal(true);
+  };
+
+  const handleSubmitRequest = async (e) => {
+    e?.preventDefault();
+    if (!requestProductId) { alert('Please select a property'); return; }
+    if (!requestOwnerId) { alert('Owner not found for selected property'); return; }
+    try {
+      setRequesting(true);
+      await createBookingRequest({ productId: Number(requestProductId), ownerId: Number(requestOwnerId), requestedDate: requestDate || null, message: requestMessage || null });
+      alert('Request sent to owner');
+      setShowRequestModal(false);
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to send request');
+    } finally {
+      setRequesting(false);
+    }
   };
 
   return (
@@ -89,9 +163,49 @@ const UserDashboard = () => {
               Find your next home in Nepal
             </p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-md shadow-teal-200/50 ml-3">
-            <span className="text-white text-lg font-semibold">A</span>
+          <div
+            className="relative ml-3 w-12 h-12 rounded-full overflow-hidden cursor-pointer"
+            onClick={() => avatarInputRef.current && avatarInputRef.current.click()}
+            title="Change profile photo"
+          >
+            {user?.profile_image ? (
+              <img
+                src={user.profile_image.startsWith('http') ? user.profile_image : `${import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || ''}/${user.profile_image}`}
+                alt="avatar"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold w-full h-full">
+                {user?.username?.charAt(0).toUpperCase() || 'U'}
+              </div>
+            )}
           </div>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                setUploadingAvatar(true);
+                const data = new FormData();
+                data.append('image', file);
+                const res = await updateProfile(data);
+                if (res.data.success) {
+                  toast.success('Avatar updated');
+                  loadUser();
+                } else {
+                  toast.error(res.data.message || 'Upload failed');
+                }
+              } catch (err) {
+                toast.error(err.response?.data?.message || 'Failed to upload avatar');
+              } finally {
+                setUploadingAvatar(false);
+              }
+            }}
+          />
         </div>
 
         {/* Search Bar */}
@@ -114,11 +228,50 @@ const UserDashboard = () => {
           </div>
           <input
             type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/search?q=${encodeURIComponent(searchInput || '')}`); }}
             placeholder="Search by city, area, or budget (Rs.)"
             className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all text-sm bg-white"
           />
         </div>
       </div>
+
+      {/* Request Visit Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-4 w-11/12 max-w-md">
+            <h3 className="text-lg font-bold mb-2">Request Visit</h3>
+            <form onSubmit={handleSubmitRequest}>
+              {!requestProductId && (
+                <>
+                  <label className="text-sm text-slate-700">Select property</label>
+                  <select value={requestProductId || ''} onChange={(e)=>{
+                    const pid = e.target.value;
+                    setRequestProductId(pid);
+                    // find ownerId from listings
+                    const sel = listings.find(l=>String(l.id)===String(pid));
+                    setRequestOwnerId(sel?.ownerId || null);
+                  }} className="w-full border rounded-md p-2 my-2">
+                    <option value="">-- Choose a property --</option>
+                    {listings.map((p)=> (
+                      <option key={p.id} value={p.id}>{p.title || `${p.area || p.location} • Rs. ${p.price}`}</option>
+                    ))}
+                  </select>
+                </>
+              )}
+              <label className="text-sm text-slate-700">Preferred date/time</label>
+              <input type="datetime-local" value={requestDate} onChange={(e)=>setRequestDate(e.target.value)} className="w-full border rounded-md p-2 my-2" />
+              <label className="text-sm text-slate-700">Message (optional)</label>
+              <textarea value={requestMessage} onChange={(e)=>setRequestMessage(e.target.value)} className="w-full border rounded-md p-2 my-2" rows={4} />
+              <div className="flex justify-end gap-2 mt-3">
+                <button type="button" onClick={()=>setShowRequestModal(false)} className="px-3 py-1 rounded-md border">Cancel</button>
+                <button type="submit" disabled={requesting} className="px-3 py-1 rounded-md bg-teal-600 text-white">{requesting ? 'Sending...' : 'Send Request'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="px-5 space-y-6">
         {/* Location Chips */}
@@ -212,6 +365,7 @@ const UserDashboard = () => {
                       />
                     </svg>
                   </button>
+                  {/* request button removed per UX change */}
                 </div>
                 <div className="p-4">
                   <div className="flex items-baseline gap-1 mb-1">
@@ -220,6 +374,9 @@ const UserDashboard = () => {
                   </div>
                   <p className="text-sm font-medium text-slate-700">{listing.area}, {listing.city}</p>
                   <p className="text-xs text-slate-400">Posted: {listing.createdAt ? new Date(listing.createdAt).toLocaleString() : 'N/A'}{listing.updatedAt && listing.updatedAt !== listing.createdAt ? ` • Edited: ${new Date(listing.updatedAt).toLocaleString()}` : ''}</p>
+                  <div className="mt-3 flex items-center gap-2">
+                    {/* Request Visit removed from listing per UX change */}
+                  </div>
                 </div>
               </div>
             ))}
@@ -358,6 +515,9 @@ const UserDashboard = () => {
                           <span>Parking</span>
                         </div>
                       )}
+                      <div className="ml-auto flex items-center gap-2">
+                        {/* Request Visit removed from listing per UX change */}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -371,7 +531,7 @@ const UserDashboard = () => {
       {/* Bottom Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg shadow-teal-100/50">
         <div className="flex justify-around items-center py-3 px-2">
-          <button className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors">
+          <button onClick={() => fetchListings()} className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 text-teal-600"
@@ -388,7 +548,7 @@ const UserDashboard = () => {
             </svg>
             <span className="text-xs font-medium text-teal-600">Home</span>
           </button>
-          <button className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors">
+          <button onClick={() => navigate(`/search?q=${encodeURIComponent(searchInput || '')}`)} className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 text-slate-400"
@@ -405,7 +565,7 @@ const UserDashboard = () => {
             </svg>
             <span className="text-xs font-medium text-slate-400">Search</span>
           </button>
-          <button className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors">
+          <button onClick={() => navigate('/favorites')} className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 text-slate-400"
@@ -422,25 +582,15 @@ const UserDashboard = () => {
             </svg>
             <span className="text-xs font-medium text-slate-400">Favorites</span>
           </button>
-          <button className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
+          <button onClick={() => { openRequestModal(null, null); }} className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2zm0 8c-3.866 0-7 1.79-7 4v1h14v-1c0-2.21-3.134-4-7-4z" />
             </svg>
-            <span className="text-xs font-medium text-slate-400">Messages</span>
+            <span className="text-xs font-medium text-slate-400">Request</span>
           </button>
+
           <button 
-            onClick={() => navigate('/switchrole')}
+            onClick={() => navigate('/profile')}
             className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-teal-50 transition-colors"
           >
             <svg
@@ -459,6 +609,7 @@ const UserDashboard = () => {
             </svg>
             <span className="text-xs font-medium text-slate-400">Profile</span>
           </button>
+
         </div>
       </div>
     </div>

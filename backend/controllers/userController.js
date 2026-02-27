@@ -20,7 +20,9 @@ const addUser=async(req,res)=>{
         const newUser=await User.create({
             username,
             email,
-            password: hassed
+            password: hassed,
+            phone: req.body.phone || null,
+            profile_image: null
         });
 
         res.status(201).json({
@@ -224,7 +226,10 @@ const getMe = async (req, res) => {
             id: user.id, 
             username: user.username, 
             email: user.email, 
-            // role: user.role 
+            phone: user.phone,
+            role: user.role,
+            profile_image: user.profile_image,
+            createdAt: user.createdAt,
         },
         message: "User fetched successfully" 
     })
@@ -236,7 +241,66 @@ const getMe = async (req, res) => {
   }
 }
 
+// alias for new profile endpoint
+const getProfile = async (req, res) => {
+  return getMe(req, res);
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const id = req.user.id;
+    const { username, phone, email } = req.body;
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (username) {
+      const exists = await User.findOne({ where: { username } });
+      if (exists && exists.id !== user.id) return res.status(400).json({ success: false, message: 'Username already taken' });
+    }
+
+    if (email) {
+      const emailExists = await User.findOne({ where: { email } });
+      if (emailExists && emailExists.id !== user.id) return res.status(400).json({ success: false, message: 'Email already in use' });
+    }
+
+    const updateData = {};
+    if (username) updateData.username = username;
+    if (email) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    if (req.file) updateData.profile_image = `uploads/${req.file.filename}`;
+
+    await user.update(updateData);
+    return res.json({
+      success: true,
+      message: 'Profile updated',
+      user: { id: user.id, username: user.username, email: user.email, phone: user.phone, profile_image: user.profile_image },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Error updating profile', error: error.message });
+  }
+};
+
+const changePassword = async (req, res) => {
+  try {
+    const id = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Passwords required' });
+    }
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) return res.status(400).json({ success: false, message: 'Current password incorrect' });
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    await user.save();
+    return res.json({ success: true, message: 'Password changed' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Error changing password', error: error.message });
+  }
+};
+
 module.exports={
     getAllUser,addUser,addAdminUser,getUsersById,getActiveUsers,updateUser,deleteUser,
-    logInUser,getMe
+    logInUser,getMe,getProfile,updateProfile,changePassword
 }

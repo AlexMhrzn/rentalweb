@@ -33,6 +33,9 @@ export const deleteUserById = (id) => Api.delete(`/api/user/deleteuserbyid/${id}
 export const getUserById = (id) => Api.get(`/api/user/getusersbyid/${id}`, getConfig());
 export const updateUserById = (id, data) => Api.put(`/api/user/updateuserbyid/${id}`, data, getConfig());
 export const getMe = () => Api.get("/api/user/me", getConfig());
+export const getProfile = () => Api.get("/api/user/profile", getConfig());
+export const updateProfile = (formData) => ApiFormData.put('/api/user/profile/update', formData, getFormDataConfig());
+export const changePassword = (data) => Api.put('/api/user/profile/change-password', data, getConfig());
 
 // Product/Property APIs
 export const getProducts = (params) => Api.get("/api/product/products", { params });
@@ -82,3 +85,18 @@ export const updateProduct = (id, data, imageFile) => {
 };
 export const deleteProduct = (id) => Api.delete(`/api/product/${id}`, getConfig());
 export const getAdminStats = () => Api.get("/api/product/admin/stats", getConfig());
+// Favorites
+export const addFavorite = (productId) => Api.post(`/api/product/favorite/${productId}`, {}, getConfig());
+export const removeFavorite = (productId) => Api.delete(`/api/product/favorite/${productId}`, getConfig());
+export const getMyFavorites = () => Api.get(`/api/product/favorite/my`, getConfig());
+// Messaging
+export const sendMessage = (data) => Api.post('/api/message/send', data, getConfig());
+export const getUserConversations = () => Api.get('/api/conversation/user', getConfig());
+export const getOwnerConversations = () => Api.get('/api/conversation/owner', getConfig());
+export const startConversation = (data) => Api.post('/api/conversation/start', data, getConfig());
+export const getMessagesByConversation = (conversationId) => Api.get(`/api/message/${conversationId}`, getConfig());
+// Booking / Request Visit APIs
+export const createBookingRequest = (data) => Api.post('/api/booking/request', data, getConfig());
+export const getUserBookingRequests = () => Api.get('/api/booking/user', getConfig());
+export const getOwnerBookingRequests = () => Api.get('/api/booking/owner', getConfig());
+export const updateBookingStatus = (id, status) => Api.put(`/api/booking/${id}/status`, { status }, getConfig());

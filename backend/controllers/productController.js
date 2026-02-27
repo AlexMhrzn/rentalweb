@@ -4,10 +4,31 @@ const User = require('../models/userModel');
 
 const getAllProduct = async (req, res) => {
   try {
-    const { city, category } = req.query;
+    const { city, category, q, minPrice, maxPrice } = req.query;
     const where = { status: 'active' };
-    if (city && city.trim()) where.city = { [Op.iLike]: city.trim() };
-    if (category && category.trim()) where.category = { [Op.iLike]: category.trim() };
+
+    // city and category - allow partial, case-insensitive matches
+    if (city && city.trim()) where.city = { [Op.iLike]: `%${city.trim()}%` };
+    if (category && category.trim()) where.category = { [Op.iLike]: `%${category.trim()}%` };
+
+    // price range
+    if (minPrice || maxPrice) {
+      const priceCond = {};
+      if (minPrice && !Number.isNaN(Number(minPrice))) priceCond[Op.gte] = Number(minPrice);
+      if (maxPrice && !Number.isNaN(Number(maxPrice))) priceCond[Op.lte] = Number(maxPrice);
+      if (Object.keys(priceCond).length) where.price = priceCond;
+    }
+
+    // free text q - search title, location, area, city
+    if (q && q.trim()) {
+      const term = `%${q.trim()}%`;
+      where[Op.or] = [
+        { title: { [Op.iLike]: term } },
+        { location: { [Op.iLike]: term } },
+        { area: { [Op.iLike]: term } },
+        { city: { [Op.iLike]: term } },
+      ];
+    }
 
     const products = await Product.findAll({
       where,
@@ -212,6 +233,51 @@ const getAdminStats = async (req, res) => {
   }
 };
 
+const addFavorite = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params; // product id
+    const product = await Product.findByPk(id);
+    if (!product) return res.status(404).json({ success: false, message: 'Property not found' });
+
+    const Favorite = require('../models/favoriteModel');
+    const [fav, created] = await Favorite.findOrCreate({ where: { userId, productId: product.id } });
+    return res.json({ success: true, message: created ? 'Added to favorites' : 'Already in favorites', favorite: fav });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error adding favorite', error: error.message });
+  }
+};
+
+const removeFavorite = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params; // product id
+    const Favorite = require('../models/favoriteModel');
+    const fav = await Favorite.findOne({ where: { userId, productId: id } });
+    if (!fav) return res.status(404).json({ success: false, message: 'Favorite not found' });
+    await fav.destroy();
+    return res.json({ success: true, message: 'Removed from favorites' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error removing favorite', error: error.message });
+  }
+};
+
+const getMyFavorites = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const Favorite = require('../models/favoriteModel');
+    const favorites = await Favorite.findAll({
+      where: { userId },
+      include: [{ model: Product }],
+      order: [['createdAt', 'DESC']],
+    });
+    const products = favorites.map((f) => f.Product).filter(Boolean);
+    return res.json({ success: true, products });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error fetching favorites', error: error.message });
+  }
+};
+
 module.exports = {
   getAllProduct,
   getProductsByOwner,
@@ -223,4 +289,7 @@ module.exports = {
   getProductById,
   deleteProduct,
   getAdminStats,
+  addFavorite,
+  removeFavorite,
+  getMyFavorites,
 };

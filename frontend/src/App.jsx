@@ -21,6 +21,8 @@ import Profile from './pages/Profile';
 import Account from './pages/Account';
 import SwitchRole from './pages/SwitchRole';
 import SplashScreen from './pages/components/SplashScreen';
+import AllProperties from './pages/AllProperties';
+import PropertyDetails from './pages/PropertyDetails';
 function App() {
   // block for js 
   return (
@@ -61,10 +63,11 @@ function App() {
         <Route path="/switchrole" element={
           <ProtectedRoute allowedRoles={['user', 'admin']} element={<SwitchRole />} />
         } />
-
         <Route path="/edituser/:id" element={
           <ProtectedRoute allowedRoles={['admin']} element={<Edituser />} />
         } />
+        <Route path="/properties" element={<AllProperties />} />
+        <Route path="/property/:id" element={<PropertyDetails />} />
       </Routes>
       <Footers />
     </Router>

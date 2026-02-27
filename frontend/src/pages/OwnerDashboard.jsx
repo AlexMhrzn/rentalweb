@@ -1,9 +1,32 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getMyProducts, getProductById, updateProduct, deleteProduct, getMe, updateProfile } from '../services/api';
+import { getMyProducts, getProductById, updateProduct, deleteProduct, getMe, updateProfile, getOwnerBookingRequests, updateBookingStatus } from '../services/api';
 
 const OwnerDashboard = () => {
+  // Booking Requests Notification Dropdown (move hooks inside component)
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [bookingRequests, setBookingRequests] = useState([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+
+  const fetchPendingRequests = async () => {
+    try {
+      setNotifLoading(true);
+      const res = await getOwnerBookingRequests();
+      console.log('Fetched owner booking requests:', res.data?.bookings);
+      setBookingRequests(res.data?.bookings || []);
+    } catch (err) {
+      setPendingRequests([]);
+      console.error('Error fetching owner booking requests:', err);
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  // Fetch on mount and when dropdown opens
+  useEffect(() => {
+    if (showNotifDropdown) fetchPendingRequests();
+  }, [showNotifDropdown]);
   const navigate = useNavigate();
   const [activeBottomNav, setActiveBottomNav] = useState('Dashboard');
   const [loading, setLoading] = useState(true);
@@ -297,7 +320,7 @@ const OwnerDashboard = () => {
           <div className="flex items-center justify-between mb-2">
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-800">
-                Namaste, Owner 👋
+                Namaste, {user?.username || 'Owner'} 👋
               </h1>
               <p className="text-sm text-gray-500 mt-1">
                 Manage your rental properties
@@ -305,12 +328,58 @@ const OwnerDashboard = () => {
             </div>
             <div className="flex items-center space-x-3">
               {/* Notification Bell */}
-              <button className="relative p-2 text-gray-600 hover:text-teal-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+              <div className="relative">
+                <button
+                  className="relative p-2 text-gray-600 hover:text-teal-600 transition-colors"
+                  onClick={() => setShowNotifDropdown((v) => !v)}
+                  aria-label="Show booking requests"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  {bookingRequests.filter(b => b.status === 'pending').length > 0 && (
+                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">{bookingRequests.filter(b => b.status === 'pending').length}</span>
+                  )}
+                </button>
+                {/* Dropdown */}
+                {showNotifDropdown && (
+                  <div className="absolute right-0 mt-2 w-96 max-w-xs bg-white rounded-xl shadow-lg z-50 border border-slate-100">
+                    <div className="p-4 border-b font-semibold text-gray-800 flex items-center justify-between">
+                      Booking Requests
+                      <button className="text-xs text-slate-400 hover:text-teal-600" onClick={()=>setShowNotifDropdown(false)}>&times;</button>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifLoading ? (
+                        <div className="p-4 text-center text-slate-400">Loading...</div>
+                      ) : bookingRequests.length === 0 ? (
+                        <div className="p-4 text-center text-slate-400">No booking requests.</div>
+                      ) : (
+                        bookingRequests.map((b) => (
+                          <div key={b.id} className="px-4 py-3 border-b last:border-b-0 flex flex-col gap-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-gray-700">{b.requester?.name || b.requester?.email || 'Requester'}</span>
+                              <span className="text-xs text-gray-400">{new Date(b.createdAt).toLocaleString()}</span>
+                            </div>
+                            <div className="text-xs text-gray-500">Product: {b.Product?.title || b.productId}</div>
+                            <div className="text-xs text-gray-500">Preferred: {b.requestedDate ? new Date(b.requestedDate).toLocaleString() : 'Anytime'}</div>
+                            {b.message && <div className="text-xs text-gray-500 italic">"{b.message}"</div>}
+                            <div className="flex gap-2 mt-2">
+                              {b.status === 'pending' ? (
+                                <>
+                                  <button onClick={async()=>{await updateBookingStatus(b.id, 'approved');fetchPendingRequests();toast.success('Request approved');}} className="px-3 py-1 text-xs bg-green-600 text-white rounded-md">Approve</button>
+                                  <button onClick={async()=>{await updateBookingStatus(b.id, 'rejected');fetchPendingRequests();toast.success('Request rejected');}} className="px-3 py-1 text-xs bg-red-600 text-white rounded-md">Reject</button>
+                                </>
+                              ) : (
+                                <span className={`px-3 py-1 text-xs rounded-md ${b.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{b.status.charAt(0).toUpperCase() + b.status.slice(1)}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               {/* Profile Avatar: click to upload new photo */}
               <div className="relative">
                 <div

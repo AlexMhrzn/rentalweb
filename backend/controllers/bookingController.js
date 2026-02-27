@@ -19,7 +19,14 @@ exports.createBooking = async (req, res) => {
 exports.getUserBookings = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const bookings = await BookingRequest.findAll({ where: { userId }, include: [{ model: Product }, { model: User, as: 'owner', attributes: ['id','name','email'] }], order: [['createdAt','DESC']] });
+    const bookings = await BookingRequest.findAll({
+      where: { userId },
+      include: [
+        { model: Product },
+        { model: User, as: 'bookingOwner', attributes: ['id', 'username', 'email'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
     return res.json({ success: true, bookings });
   } catch (err) {
     console.error('getUserBookings error', err);
@@ -30,7 +37,14 @@ exports.getUserBookings = async (req, res) => {
 exports.getOwnerBookings = async (req, res) => {
   try {
     const ownerId = req.user?.id;
-    const bookings = await BookingRequest.findAll({ where: { ownerId }, include: [{ model: Product }, { model: User, as: 'requester', attributes: ['id','name','email'] }], order: [['createdAt','DESC']] });
+    const bookings = await BookingRequest.findAll({
+      where: { ownerId },
+      include: [
+        { model: Product },
+        { model: User, as: 'requester', attributes: ['id', 'username', 'email'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
     return res.json({ success: true, bookings });
   } catch (err) {
     console.error('getOwnerBookings error', err);

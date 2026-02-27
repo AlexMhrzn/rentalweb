@@ -14,6 +14,9 @@ const UserDashboard = () => {
   const [user, setUser] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef(null);
+  // Booking requests state
+  const [myBookingRequests, setMyBookingRequests] = useState([]);
+  const [bookingLoading, setBookingLoading] = useState(true);
 
   const locations = ['Kathmandu', 'Lalitpur', 'Bhaktapur', 'Pokhara', 'Butwal', 'Chitwan'];
   const categories = ['Room', 'Flat', 'House', 'Hostel', 'Office Space'];
@@ -21,8 +24,21 @@ const UserDashboard = () => {
   useEffect(() => {
     fetchListings();
     loadUser();
+    fetchMyBookingRequests();
   }, [selectedLocation, selectedCategory]);
 
+  // Fetch booking requests sent by user
+  const fetchMyBookingRequests = async () => {
+    try {
+      setBookingLoading(true);
+      const res = await getUserBookingRequests();
+      setMyBookingRequests(res.data?.bookings || []);
+    } catch (err) {
+      setMyBookingRequests([]);
+    } finally {
+      setBookingLoading(false);
+    }
+  };
   const loadUser = async () => {
     try {
       const res = await getMe();
@@ -136,15 +152,18 @@ const UserDashboard = () => {
 
   const handleSubmitRequest = async (e) => {
     e?.preventDefault();
-    if (!requestProductId) { alert('Please select a property'); return; }
-    if (!requestOwnerId) { alert('Owner not found for selected property'); return; }
+    if (!requestProductId) { toast.error('Please select a property'); return; }
+    if (!requestOwnerId) { toast.error('Owner not found for selected property'); return; }
     try {
       setRequesting(true);
       await createBookingRequest({ productId: Number(requestProductId), ownerId: Number(requestOwnerId), requestedDate: requestDate || null, message: requestMessage || null });
-      alert('Request sent to owner');
+      toast.success('Request sent to owner');
       setShowRequestModal(false);
     } catch (err) {
-      alert(err?.response?.data?.message || 'Failed to send request');
+      // Show backend error message in toast and log full error to console
+      const backendMsg = err?.response?.data?.message || err?.message || 'Failed to send request';
+      toast.error(`Booking failed: ${backendMsg}`);
+      console.error('Booking error:', err);
     } finally {
       setRequesting(false);
     }
@@ -157,7 +176,7 @@ const UserDashboard = () => {
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-slate-900 mb-1">
-              Namaste, Alex 🙏
+              Namaste, {user?.username || 'User'} 🙏
             </h1>
             <p className="text-sm text-slate-600">
               Find your next home in Nepal
@@ -336,14 +355,14 @@ const UserDashboard = () => {
                 key={listing.id}
                 className="flex-shrink-0 w-72 bg-white rounded-2xl shadow-md shadow-teal-100/50 overflow-hidden"
               >
-                <div className="relative">
+                <div className="relative group cursor-pointer" onClick={() => navigate(`/property/${listing.id}`)}>
                   <img
                     src={listing.image}
                     alt={listing.area}
-                    className="w-full h-48 object-cover"
+                    className="w-full h-48 object-cover group-hover:opacity-90 transition"
                   />
                   <button
-                    onClick={() => toggleFavorite(listing.id)}
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(listing.id); }}
                     className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-all"
                   >
                     <svg
@@ -365,17 +384,25 @@ const UserDashboard = () => {
                       />
                     </svg>
                   </button>
-                  {/* request button removed per UX change */}
                 </div>
                 <div className="p-4">
                   <div className="flex items-baseline gap-1 mb-1">
                     <span className="text-2xl font-bold text-teal-600">Rs. {listing.price.toLocaleString()}</span>
                     <span className="text-sm text-slate-500">/ month</span>
                   </div>
-                  <p className="text-sm font-medium text-slate-700">{listing.area}, {listing.city}</p>
+                  <p className="text-sm font-medium text-slate-700 cursor-pointer hover:underline" onClick={() => navigate(`/property/${listing.id}`)}>{listing.area}, {listing.city}</p>
                   <p className="text-xs text-slate-400">Posted: {listing.createdAt ? new Date(listing.createdAt).toLocaleString() : 'N/A'}{listing.updatedAt && listing.updatedAt !== listing.createdAt ? ` • Edited: ${new Date(listing.updatedAt).toLocaleString()}` : ''}</p>
                   <div className="mt-3 flex items-center gap-2">
-                    {/* Request Visit removed from listing per UX change */}
+                    {listing.status === 'rented' ? (
+                      <span className="px-3 py-1 rounded-md bg-red-500 text-white text-xs font-semibold">Booked</span>
+                    ) : (
+                      <button
+                        className="px-3 py-1 rounded-md bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 transition"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/property/${listing.id}`); }}
+                      >
+                        View Details
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -396,14 +423,15 @@ const UserDashboard = () => {
             {nearbyRentals.map((rental) => (
               <div
                 key={rental.id}
-                className="bg-white rounded-2xl shadow-md shadow-teal-100/50 overflow-hidden"
+                className="bg-white rounded-2xl shadow-md shadow-teal-100/50 overflow-hidden cursor-pointer group"
+                onClick={() => navigate(`/property/${rental.id}`)}
               >
                 <div className="flex">
                   <div className="relative w-32 h-32 flex-shrink-0">
                     <img
                       src={rental.image}
                       alt={rental.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:opacity-90 transition"
                     />
                     {rental.verified && (
                       <div className="absolute top-2 left-2 bg-teal-500 text-white text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-1">
@@ -426,7 +454,7 @@ const UserDashboard = () => {
                     )}
                   </div>
                   <div className="flex-1 p-4">
-                    <h3 className="text-base font-bold text-slate-900 mb-1">{rental.title}</h3>
+                    <h3 className="text-base font-bold text-slate-900 mb-1 cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); navigate(`/property/${rental.id}`); }}>{rental.title}</h3>
                     <div className="flex items-center gap-1 text-sm text-slate-600 mb-2">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -516,7 +544,16 @@ const UserDashboard = () => {
                         </div>
                       )}
                       <div className="ml-auto flex items-center gap-2">
-                        {/* Request Visit removed from listing per UX change */}
+                        {rental.status === 'rented' ? (
+                          <span className="px-3 py-1 rounded-md bg-red-500 text-white text-xs font-semibold">Booked</span>
+                        ) : (
+                          <button
+                            className="px-3 py-1 rounded-md bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 transition"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/property/${rental.id}`); }}
+                          >
+                            View Details
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

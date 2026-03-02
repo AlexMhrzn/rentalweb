@@ -263,18 +263,19 @@ const updateProfile = async (req, res) => {
       if (emailExists && emailExists.id !== user.id) return res.status(400).json({ success: false, message: 'Email already in use' });
     }
 
-    const updateData = {};
-    if (username) updateData.username = username;
-    if (email) updateData.email = email;
-    if (phone !== undefined) updateData.phone = phone;
-    if (req.file) updateData.profile_image = `uploads/${req.file.filename}`;
+        const updateData = {};
+        if (username) updateData.username = username;
+        if (email) updateData.email = email;
+        if (phone !== undefined) updateData.phone = phone;
+        if (req.body.bio !== undefined) updateData.bio = req.body.bio;
+        if (req.file) updateData.profile_image = `uploads/${req.file.filename}`;
 
-    await user.update(updateData);
-    return res.json({
-      success: true,
-      message: 'Profile updated',
-      user: { id: user.id, username: user.username, email: user.email, phone: user.phone, profile_image: user.profile_image },
-    });
+        await user.update(updateData);
+        return res.json({
+            success: true,
+            message: 'Profile updated',
+            user: { id: user.id, username: user.username, email: user.email, phone: user.phone, profile_image: user.profile_image, bio: user.bio },
+        });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Error updating profile', error: error.message });
   }

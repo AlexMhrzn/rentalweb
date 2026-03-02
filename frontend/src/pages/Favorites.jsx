@@ -36,25 +36,24 @@ const Favorites = () => {
   }, []);
 
   return (
-    <div className="min-h-screen p-5 bg-gray-50">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <div className="w-full max-w-7xl mx-auto px-4 py-8">
         <h2 className="text-xl font-bold mb-4">Favorites</h2>
         {loading ? (
           <div className="text-center text-slate-500">Loading favorites...</div>
         ) : favorites.length === 0 ? (
           <div className="text-center text-slate-500">No favorites yet</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {favorites.map((f) => (
-              <div key={f.id} className="bg-white rounded shadow overflow-hidden">
+              <div key={f.id} className="bg-white shadow-sm rounded-xl overflow-hidden flex flex-col">
                 <img src={f.image} alt={f.title} className="w-full h-40 object-cover" />
-                <div className="p-3 flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="font-bold">{f.title}</div>
-                    <div className="text-sm text-slate-500">{f.location}</div>
-                  </div>
-                  <div className="text-teal-600 font-bold">Rs. {f.price?.toLocaleString()}</div>
-                  <button onClick={async () => {
+                <div className="p-4 flex-1 flex flex-col">
+                  <div className="font-bold text-lg mb-1">{f.title}</div>
+                  <div className="text-sm text-slate-500 mb-2">{f.location}</div>
+                  <div className="text-teal-600 font-bold text-xl mb-2">Rs. {f.price?.toLocaleString()}</div>
+                  <button
+                    onClick={async () => {
                       if (!f.ownerId) return alert('Owner not found');
                       const date = window.prompt('Preferred date/time (e.g. 2026-02-26T15:00)');
                       if (date === null) return;
@@ -63,7 +62,11 @@ const Favorites = () => {
                         await createBookingRequest({ productId: f.id, ownerId: f.ownerId, requestedDate: date || null, message: msg || null });
                         alert('Request sent');
                       } catch (err) { alert(err?.response?.data?.message || 'Failed to send request'); }
-                    }} className="ml-2 px-3 py-1 bg-teal-600 text-white rounded">Request Visit</button>
+                    }}
+                    className="bg-teal-600 text-white w-full py-2 rounded-lg mt-4 hover:bg-teal-700 transition"
+                  >
+                    Request Visit
+                  </button>
                 </div>
               </div>
             ))}

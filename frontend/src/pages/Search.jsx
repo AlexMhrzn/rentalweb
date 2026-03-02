@@ -60,26 +60,26 @@ const Search = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7FAFC] pb-20 p-5">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => navigate(-1)} className="px-3 py-2 bg-white rounded-lg shadow">Back</button>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search keywords" className="flex-1 px-4 py-2 rounded-lg border" />
-          <button onClick={performSearch} className="px-4 py-2 bg-teal-600 text-white rounded-lg">Search</button>
+    <div className="min-h-screen bg-[#F3F4F6] pb-20 px-4 md:px-8">
+      <div className="max-w-7xl mx-auto w-full">
+        <div className="flex items-center gap-3 mb-4 w-full">
+          <button onClick={() => navigate(-1)} className="px-3 py-2 bg-[#0F766E] text-white rounded-xl shadow-md hover:bg-[#15803D] transition">Back</button>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search keywords" className="flex-1 px-4 py-2 rounded-xl border-2 border-teal-200 bg-white shadow-sm text-[#374151] placeholder-cyan-500 focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 transition-all text-base" />
+          <button onClick={performSearch} className="px-4 py-2 bg-[#0F766E] text-white rounded-xl shadow-md hover:bg-[#15803D] transition">Search</button>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow mb-4">
-          <div className="grid grid-cols-2 gap-3">
-            <select value={city} onChange={(e) => setCity(e.target.value)} className="p-2 border rounded">
+        <div className="bg-white p-5 rounded-2xl shadow-lg mb-6 w-full" style={{boxShadow: '0 10px 15px -3px rgba(0,0,0,0.08)'}}>
+          <div className="grid grid-cols-2 gap-4">
+            <select value={city} onChange={(e) => setCity(e.target.value)} className="p-3 border-2 border-teal-200 rounded-xl bg-[#F3F4F6] text-[#374151] focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 transition-all">
               <option value="">Any city</option>
               {locations.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="p-2 border rounded">
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="p-3 border-2 border-teal-200 rounded-xl bg-[#F3F4F6] text-[#374151] focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 transition-all">
               <option value="">Any type</option>
               {categories.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
-            <input value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="Min price" className="p-2 border rounded" />
-            <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Max price" className="p-2 border rounded" />
+            <input value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="Min price" className="p-3 border-2 border-teal-200 rounded-xl bg-[#F3F4F6] text-[#374151] focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 transition-all" />
+            <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Max price" className="p-3 border-2 border-teal-200 rounded-xl bg-[#F3F4F6] text-[#374151] focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 transition-all" />
           </div>
         </div>
 
@@ -90,17 +90,17 @@ const Search = () => {
           ) : results.length === 0 ? (
             <div className="text-center py-8 text-slate-500">No results found</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {results.map((r) => (
-                <div key={r.id} className="bg-white rounded-2xl shadow overflow-hidden">
+                <div key={r.id} className="bg-white rounded-2xl overflow-hidden" style={{boxShadow: '0 10px 15px -3px rgba(0,0,0,0.10)'}}>
                   <img src={r.image} alt={r.title} className="w-full h-40 object-cover" />
-                  <div className="p-4">
+                  <div className="p-5">
                     <div className="flex items-baseline justify-between">
                       <div>
-                        <h3 className="font-bold">{r.title}</h3>
+                        <h3 className="font-bold text-slate-900">{r.title}</h3>
                         <p className="text-sm text-slate-600">{r.location}</p>
                       </div>
-                      <div className="text-teal-600 font-bold">Rs. {r.price.toLocaleString()}</div>
+                      <div className="font-bold text-[#15803D]">Rs. {r.price.toLocaleString()}</div>
                     </div>
                     <div className="flex items-center gap-3 mt-3 text-sm text-slate-600">
                       <div>{r.beds} beds</div>

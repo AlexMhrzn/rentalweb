@@ -25,7 +25,7 @@ Product.hasMany(Message, { foreignKey: 'productId' });
 // --- Booking Requests ---
 BookingRequest.belongsTo(User, { foreignKey: 'userId', as: 'requester' });
 // UNIQUE ALIAS to prevent crash
-BookingRequest.belongsTo(User, { foreignKey: 'ownerId', as: 'bookingOwner' }); 
+BookingRequest.belongsTo(User, { foreignKey: 'ownerId', as: 'bookingOwner' });
 BookingRequest.belongsTo(Product, { foreignKey: 'productId' });
 
 User.hasMany(BookingRequest, { foreignKey: 'userId', as: 'bookingRequests' });

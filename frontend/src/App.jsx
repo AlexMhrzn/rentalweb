@@ -23,6 +23,7 @@ import SwitchRole from './pages/SwitchRole';
 import SplashScreen from './pages/components/SplashScreen';
 import AllProperties from './pages/AllProperties';
 import PropertyDetails from './pages/PropertyDetails';
+import ResetPassword from './pages/ResetPassword';
 function App() {
   // block for js 
   return (
@@ -34,6 +35,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forget-password" element={<ForgetPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/create-admin" element={<AdminRegister />} />
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/userdashboard" element={

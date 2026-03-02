@@ -313,65 +313,72 @@ const OwnerDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-teal-50 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-[#E0F7FA] via-[#F1F8E9] to-[#E8F5E9] pb-24">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between mb-2">
+      <header className="bg-white/90 backdrop-blur-lg shadow-xl shadow-teal-100/40 sticky top-0 z-10 border-b border-teal-100">
+        <div className="px-8 py-6">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-800">
-                Namaste, {user?.username || 'Owner'} 👋
+              <h1 className="text-3xl font-extrabold text-teal-700 mb-2 drop-shadow-sm tracking-tight">
+                👋 Namaste, <span className="text-teal-900">{user?.username || 'Owner'}</span>
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Manage your rental properties
+              <p className="text-base text-slate-600 font-medium">
+                Manage your <span className="font-semibold text-teal-500">rental properties</span>
               </p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-6">
               {/* Notification Bell */}
               <div className="relative">
                 <button
-                  className="relative p-2 text-gray-600 hover:text-teal-600 transition-colors"
+                  className="relative p-3 text-teal-600 hover:text-teal-800 transition-colors rounded-full bg-teal-50 shadow-md"
                   onClick={() => setShowNotifDropdown((v) => !v)}
                   aria-label="Show booking requests"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
                   {bookingRequests.filter(b => b.status === 'pending').length > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">{bookingRequests.filter(b => b.status === 'pending').length}</span>
+                    <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs flex items-center justify-center rounded-full animate-bounce">{bookingRequests.filter(b => b.status === 'pending').length}</span>
                   )}
                 </button>
                 {/* Dropdown */}
                 {showNotifDropdown && (
-                  <div className="absolute right-0 mt-2 w-96 max-w-xs bg-white rounded-xl shadow-lg z-50 border border-slate-100">
-                    <div className="p-4 border-b font-semibold text-gray-800 flex items-center justify-between">
-                      Booking Requests
-                      <button className="text-xs text-slate-400 hover:text-teal-600" onClick={()=>setShowNotifDropdown(false)}>&times;</button>
+                  <div className="absolute right-0 mt-2 w-[420px] max-w-xs bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl z-50 border border-teal-100">
+                    <div className="p-5 border-b font-bold text-teal-700 flex items-center justify-between text-lg">
+                      <span>Booking Requests</span>
+                      <button className="text-base text-teal-400 hover:text-teal-700" onClick={()=>setShowNotifDropdown(false)}>&times;</button>
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
+                    <div className="max-h-96 overflow-y-auto p-2">
                       {notifLoading ? (
-                        <div className="p-4 text-center text-slate-400">Loading...</div>
+                        <div className="p-6 text-center text-teal-400">Loading...</div>
                       ) : bookingRequests.length === 0 ? (
-                        <div className="p-4 text-center text-slate-400">No booking requests.</div>
+                        <div className="p-6 text-center text-teal-400">No booking requests.</div>
                       ) : (
                         bookingRequests.map((b) => (
-                          <div key={b.id} className="px-4 py-3 border-b last:border-b-0 flex flex-col gap-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-gray-700">{b.requester?.name || b.requester?.email || 'Requester'}</span>
-                              <span className="text-xs text-gray-400">{new Date(b.createdAt).toLocaleString()}</span>
+                          <div key={b.id} className="bg-white rounded-xl shadow-sm border border-teal-50 px-4 py-4 mb-3 flex gap-4 items-center">
+                            {/* Avatar */}
+                            <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center font-bold text-teal-700 text-lg">
+                              {b.requester?.name ? b.requester.name.charAt(0).toUpperCase() : (b.requester?.email ? b.requester.email.charAt(0).toUpperCase() : '?')}
                             </div>
-                            <div className="text-xs text-gray-500">Product: {b.Product?.title || b.productId}</div>
-                            <div className="text-xs text-gray-500">Preferred: {b.requestedDate ? new Date(b.requestedDate).toLocaleString() : 'Anytime'}</div>
-                            {b.message && <div className="text-xs text-gray-500 italic">"{b.message}"</div>}
-                            <div className="flex gap-2 mt-2">
-                              {b.status === 'pending' ? (
-                                <>
-                                  <button onClick={async()=>{await updateBookingStatus(b.id, 'approved');fetchPendingRequests();toast.success('Request approved');}} className="px-3 py-1 text-xs bg-green-600 text-white rounded-md">Approve</button>
-                                  <button onClick={async()=>{await updateBookingStatus(b.id, 'rejected');fetchPendingRequests();toast.success('Request rejected');}} className="px-3 py-1 text-xs bg-red-600 text-white rounded-md">Reject</button>
-                                </>
-                              ) : (
-                                <span className={`px-3 py-1 text-xs rounded-md ${b.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{b.status.charAt(0).toUpperCase() + b.status.slice(1)}</span>
-                              )}
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-semibold text-teal-700 truncate">{b.requester?.name || b.requester?.email || 'Requester'}</span>
+                                <span className="text-xs text-gray-400">{new Date(b.createdAt).toLocaleString()}</span>
+                              </div>
+                              <div className="text-xs text-gray-500 mb-1">Product: <span className="font-medium text-teal-600">{b.Product?.title || b.productId}</span></div>
+                              <div className="text-xs text-gray-500 mb-1">Preferred: <span className="font-medium text-teal-600">{b.requestedDate ? new Date(b.requestedDate).toLocaleString() : 'Anytime'}</span></div>
+                              {b.message && <div className="text-xs italic text-teal-500 mb-1">"{b.message}"</div>}
+                              <div className="flex gap-2 mt-2">
+                                {b.status === 'pending' ? (
+                                  <>
+                                    <button onClick={async()=>{await updateBookingStatus(b.id, 'approved');fetchPendingRequests();toast.success('Request approved');}} className="px-4 py-2 text-xs bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg font-semibold shadow hover:shadow-md transition">Approve</button>
+                                    <button onClick={async()=>{await updateBookingStatus(b.id, 'rejected');fetchPendingRequests();toast.success('Request rejected');}} className="px-4 py-2 text-xs bg-gradient-to-r from-red-400 to-red-600 text-white rounded-lg font-semibold shadow hover:shadow-md transition">Reject</button>
+                                  </>
+                                ) : (
+                                  <span className={`px-4 py-2 text-xs rounded-lg font-semibold ${b.status === 'approved' ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700'}`}>{b.status.charAt(0).toUpperCase() + b.status.slice(1)}</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))
@@ -384,7 +391,7 @@ const OwnerDashboard = () => {
               <div className="relative">
                 <div
                   onClick={() => avatarInputRef.current && avatarInputRef.current.click()}
-                  className="w-10 h-10 rounded-full overflow-hidden cursor-pointer"
+                  className="w-14 h-14 rounded-full overflow-hidden border-4 border-teal-300 shadow-lg cursor-pointer group transition-transform duration-200 hover:scale-105"
                   title="Change profile photo"
                 >
                   {user?.profile_image ? (
@@ -394,8 +401,13 @@ const OwnerDashboard = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold w-full h-full">
+                    <div className="bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-2xl w-full h-full">
                       {user?.username?.charAt(0).toUpperCase() || 'O'}
+                    </div>
+                  )}
+                  {uploadingAvatar && (
+                    <div className="absolute inset-0 bg-white/70 flex items-center justify-center animate-pulse">
+                      <span className="text-teal-600 font-semibold">Uploading...</span>
                     </div>
                   )}
                 </div>
@@ -436,58 +448,62 @@ const OwnerDashboard = () => {
         {activeBottomNav === 'Dashboard' && (
           <>
             {/* Summary Stat Cards */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {/* Total Listings */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gradient-to-br from-teal-50 to-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-teal-100 group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center group-hover:bg-teal-200 transition">
+                    <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                   </div>
+                  <span className="text-lg font-semibold text-teal-700">Total Listings</span>
                 </div>
-                <p className="text-xs text-gray-500 mb-1">Total Listings</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.totalListings}</p>
+                <p className="text-4xl font-extrabold text-gray-900 mb-1">{stats.totalListings}</p>
+                <p className="text-xs text-gray-500">Properties you have listed</p>
               </div>
 
               {/* Active Rentals */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gradient-to-br from-green-50 to-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-green-100 group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
+                  <span className="text-lg font-semibold text-green-700">Active Rentals</span>
                 </div>
-                <p className="text-xs text-gray-500 mb-1">Active Rentals</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.activeRentals}</p>
+                <p className="text-4xl font-extrabold text-gray-900 mb-1">{stats.activeRentals}</p>
+                <p className="text-xs text-gray-500">Currently rented or active</p>
               </div>
 
               {/* Pending Requests */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gradient-to-br from-yellow-50 to-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-yellow-100 group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center group-hover:bg-yellow-200 transition">
+                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
+                  <span className="text-lg font-semibold text-yellow-700">Pending Requests</span>
                 </div>
-                <p className="text-xs text-gray-500 mb-1">Pending Requests</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.pendingRequests}</p>
+                <p className="text-4xl font-extrabold text-gray-900 mb-1">{stats.pendingRequests}</p>
+                <p className="text-xs text-gray-500">Requests awaiting approval</p>
               </div>
 
               {/* Total Views */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-blue-100 group">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                   </div>
+                  <span className="text-lg font-semibold text-blue-700">Total Views</span>
                 </div>
-                <p className="text-xs text-gray-500 mb-1">Total Views</p>
-                <p className="text-2xl font-bold text-gray-800">{stats.totalViews.toLocaleString()}</p>
+                <p className="text-4xl font-extrabold text-gray-900 mb-1">{stats.totalViews.toLocaleString()}</p>
+                <p className="text-xs text-gray-500">Views across all listings</p>
               </div>
             </div>
 
@@ -746,90 +762,106 @@ const OwnerDashboard = () => {
       {showAddModal && (
         <>
           <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setShowAddModal(false)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl p-6 z-50 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Post New Property</h2>
-            <form onSubmit={handleSubmitProperty} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <input
-                  type="text"
-                  value={newProperty.title}
-                  onChange={(e) => setNewProperty((p) => ({ ...p, title: e.target.value }))}
-                  placeholder="e.g. 2BHK Flat in Thamel"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Price (NPR/month)</label>
-                <input
-                  type="number"
-                  value={newProperty.price}
-                  onChange={(e) => setNewProperty((p) => ({ ...p, price: e.target.value }))}
-                  placeholder="15000"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                <input
-                  type="text"
-                  value={newProperty.location}
-                  onChange={(e) => setNewProperty((p) => ({ ...p, location: e.target.value }))}
-                  placeholder="Thamel, Kathmandu"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                <input
-                  type="text"
-                  value={newProperty.city}
-                  onChange={(e) => setNewProperty((p) => ({ ...p, city: e.target.value }))}
-                  placeholder="Kathmandu"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <select
-                  value={newProperty.category}
-                  onChange={(e) => setNewProperty((p) => ({ ...p, category: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                >
-                  {['Room', 'Flat', 'House', 'Hostel', 'Office Space'].map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Property Photo</label>
-                <input
-                  ref={addImageInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAddImageChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-                {newPropertyImagePreview && (
-                  <div className="mt-2">
-                    <img src={newPropertyImagePreview} alt="Preview" className="w-full h-40 object-cover rounded-lg" />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 bg-white rounded-3xl shadow-2xl p-8 z-50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto border border-teal-100">
+            <h2 className="text-2xl font-extrabold text-teal-700 mb-6 text-center tracking-tight">Post New Property</h2>
+            <form onSubmit={handleSubmitProperty} className="space-y-5">
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Title</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={newProperty.title}
+                      onChange={(e) => setNewProperty((p) => ({ ...p, title: e.target.value }))}
+                      placeholder="e.g. 2BHK Flat in Thamel"
+                      className="w-full px-4 py-3 border-2 border-teal-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 text-base bg-white shadow-sm"
+                      required
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                    </span>
                   </div>
-                )}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Price (NPR/month)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={newProperty.price}
+                      onChange={(e) => setNewProperty((p) => ({ ...p, price: e.target.value }))}
+                      placeholder="15000"
+                      className="w-full px-4 py-3 border-2 border-teal-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 text-base bg-white shadow-sm"
+                      required
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-3.866 0-7 1.79-7 4v1h14v-1c0-2.21-3.134-4-7-4z" /></svg>
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={newProperty.location}
+                    onChange={(e) => setNewProperty((p) => ({ ...p, location: e.target.value }))}
+                    placeholder="Thamel, Kathmandu"
+                    className="w-full px-4 py-3 border-2 border-teal-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 text-base bg-white shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">City</label>
+                  <input
+                    type="text"
+                    value={newProperty.city}
+                    onChange={(e) => setNewProperty((p) => ({ ...p, city: e.target.value }))}
+                    placeholder="Kathmandu"
+                    className="w-full px-4 py-3 border-2 border-teal-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 text-base bg-white shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Category</label>
+                  <select
+                    value={newProperty.category}
+                    onChange={(e) => setNewProperty((p) => ({ ...p, category: e.target.value }))}
+                    className="w-full px-4 py-3 border-2 border-teal-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 text-base bg-white shadow-sm"
+                  >
+                    {['Room', 'Flat', 'House', 'Hostel', 'Office Space'].map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Property Photo</label>
+                  <div className="border-2 border-dashed border-teal-200 rounded-xl p-4 flex flex-col items-center justify-center bg-teal-50 hover:bg-teal-100 transition cursor-pointer" onClick={() => addImageInputRef.current && addImageInputRef.current.click()}>
+                    <svg className="w-10 h-10 text-teal-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2zm0 0l7 7 7-7" /></svg>
+                    <span className="text-sm text-teal-600 font-medium">{newPropertyImage ? newPropertyImage.name : 'Click or drag to upload'}</span>
+                    <input
+                      ref={addImageInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAddImageChange}
+                      className="hidden"
+                    />
+                  </div>
+                  {newPropertyImagePreview && (
+                    <div className="mt-2">
+                      <img src={newPropertyImagePreview} alt="Preview" className="w-full h-40 object-cover rounded-xl shadow" />
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-4 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium"
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2 bg-teal-600 text-white rounded-lg font-medium disabled:opacity-50"
+                  className="flex-1 py-3 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition disabled:opacity-50"
                 >
                   {submitting ? 'Submitting...' : 'Submit'}
                 </button>

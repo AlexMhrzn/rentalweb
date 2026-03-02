@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 const Account = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
-  const [form, setForm] = useState({ username: '', email: '', phone: '' });
+  const [form, setForm] = useState({ username: '', email: '', phone: '', bio: '' });
   const [newImage, setNewImage] = useState(null);
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
 
@@ -20,6 +20,7 @@ const Account = () => {
             username: res.data.user.username || '',
             email: res.data.user.email || '',
             phone: res.data.user.phone || '',
+            bio: res.data.user.bio || '',
           });
         } else {
           toast.error(res.data.message || 'Unable to fetch profile');
@@ -39,6 +40,7 @@ const Account = () => {
       data.append('email', form.email);
       data.append('phone', form.phone);
       if (newImage) data.append('image', newImage);
+      data.append('bio', form.bio);
       const res = await updateProfile(data);
       if (res.data.success) {
         toast.success('Profile updated');
@@ -101,6 +103,16 @@ const Account = () => {
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               className="w-full border rounded p-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm">Bio</label>
+            <textarea
+              value={form.bio}
+              onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              className="w-full border rounded p-2"
+              rows={3}
+              placeholder="Tell us about yourself..."
             />
           </div>
           <div>

@@ -4,13 +4,14 @@ const User = require('../models/userModel');
 
 const getAllProduct = async (req, res) => {
   try {
-    const { city, category, q, minPrice, maxPrice } = req.query;
-    const where = { status: 'active' };
-
+    const { city, category, q, minPrice, maxPrice, status } = req.query;
+    const where = {};
+    if (status && ["active","pending","rejected","rented"].includes(status)) {
+      where.status = status;
+    }
     // city and category - allow partial, case-insensitive matches
     if (city && city.trim()) where.city = { [Op.iLike]: `%${city.trim()}%` };
     if (category && category.trim()) where.category = { [Op.iLike]: `%${category.trim()}%` };
-
     // price range
     if (minPrice || maxPrice) {
       const priceCond = {};
@@ -18,7 +19,6 @@ const getAllProduct = async (req, res) => {
       if (maxPrice && !Number.isNaN(Number(maxPrice))) priceCond[Op.lte] = Number(maxPrice);
       if (Object.keys(priceCond).length) where.price = priceCond;
     }
-
     // free text q - search title, location, area, city
     if (q && q.trim()) {
       const term = `%${q.trim()}%`;
@@ -29,7 +29,6 @@ const getAllProduct = async (req, res) => {
         { city: { [Op.iLike]: term } },
       ];
     }
-
     const products = await Product.findAll({
       where,
       include: [{ model: User, as: 'owner', attributes: ['id', 'username'] }],
@@ -141,8 +140,8 @@ const updateProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
 
-    // Check if user is the owner
-    if (product.ownerId !== ownerId) {
+    // Allow owner or admin to edit
+    if (product.ownerId !== ownerId && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'You are not authorized to edit this property' });
     }
 
@@ -199,8 +198,8 @@ const deleteProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
 
-    // Check if user is the owner
-    if (product.ownerId !== ownerId) {
+    // Allow owner or admin to delete
+    if (product.ownerId !== ownerId && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'You are not authorized to delete this property' });
     }
 

@@ -30,7 +30,7 @@ User.hasMany(Message, { foreignKey: 'receiverId', as: 'receivedMessages' });
 Product.hasMany(Message, { foreignKey: 'productId' });
 // Booking associations
 BookingRequest.belongsTo(User, { foreignKey: 'userId', as: 'requester' });
-BookingRequest.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
+BookingRequest.belongsTo(User, { foreignKey: 'ownerId', as: 'bookingOwner' });
 BookingRequest.belongsTo(Product, { foreignKey: 'productId' });
 User.hasMany(BookingRequest, { foreignKey: 'userId', as: 'bookingRequests' });
 User.hasMany(BookingRequest, { foreignKey: 'ownerId', as: 'receivedBookingRequests' });

@@ -18,8 +18,23 @@ const UserDashboard = () => {
   const [myBookingRequests, setMyBookingRequests] = useState([]);
   const [bookingLoading, setBookingLoading] = useState(true);
 
-  const locations = ['Kathmandu', 'Lalitpur', 'Bhaktapur', 'Pokhara', 'Butwal', 'Chitwan'];
-  const categories = ['Room', 'Flat', 'House', 'Hostel', 'Office Space'];
+  const locationStyles = {
+    'Kathmandu': 'from-[#e0f7fa] to-[#b2ebf2]',
+    'Lalitpur': 'from-[#e0f2f1] to-[#b2dfdb]',
+    'Bhaktapur': 'from-[#e8f5e9] to-[#c8e6c9]',
+    'Pokhara': 'from-[#f1f8e9] to-[#dcedc8]',
+    'Butwal': 'from-[#fffde7] to-[#fff9c4]',
+    'Chitwan': 'from-[#fce4ec] to-[#f8bbd0]'
+  };
+  const locations = Object.keys(locationStyles);
+  const categoryStyles = {
+    'Room': 'from-[#b2ebf2] to-[#4dd0e1]',
+    'Flat': 'from-[#c8e6c9] to-[#81c784]',
+    'House': 'from-[#fff9c4] to-[#fff176]',
+    'Hostel': 'from-[#f8bbd0] to-[#ec407a]',
+    'Office Space': 'from-[#dcedc8] to-[#aed581]'
+  };
+  const categories = Object.keys(categoryStyles);
 
   useEffect(() => {
     fetchListings();
@@ -170,20 +185,20 @@ const UserDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#E8F5E9] pb-20">
+    <div className="min-h-screen bg-[#F3F4F6] pb-24">
       {/* Header Section */}
-      <div className="bg-white rounded-b-3xl shadow-md shadow-teal-100/50 px-5 pt-6 pb-4 mb-4">
-        <div className="flex items-start justify-between mb-4">
+      <div className="bg-white/90 backdrop-blur-lg rounded-b-3xl shadow-xl shadow-teal-100/40 px-8 pt-8 pb-6 mb-6 border-b border-teal-100">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-900 mb-1">
-              Namaste, {user?.username || 'User'} 🙏
+            <h1 className="text-3xl font-extrabold text-teal-700 mb-2 drop-shadow-sm tracking-tight">
+              👋 Namaste, <span className="text-teal-900">{user?.username || 'User'}</span>
             </h1>
-            <p className="text-sm text-slate-600">
-              Find your next home in Nepal
+            <p className="text-base text-slate-600 font-medium">
+              Find your next home in <span className="font-semibold text-teal-500">Nepal</span>
             </p>
           </div>
           <div
-            className="relative ml-3 w-12 h-12 rounded-full overflow-hidden cursor-pointer"
+            className="relative ml-6 w-16 h-16 rounded-full overflow-hidden border-4 border-teal-300 shadow-lg cursor-pointer group transition-transform duration-200 hover:scale-105"
             onClick={() => avatarInputRef.current && avatarInputRef.current.click()}
             title="Change profile photo"
           >
@@ -194,8 +209,13 @@ const UserDashboard = () => {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-semibold w-full h-full">
+              <div className="bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-2xl w-full h-full">
                 {user?.username?.charAt(0).toUpperCase() || 'U'}
+              </div>
+            )}
+            {uploadingAvatar && (
+              <div className="absolute inset-0 bg-white/70 flex items-center justify-center animate-pulse">
+                <span className="text-teal-600 font-semibold">Uploading...</span>
               </div>
             )}
           </div>
@@ -228,11 +248,11 @@ const UserDashboard = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+        <div className="relative mt-2">
+          <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-slate-400"
+              className="h-6 w-6 text-teal-400 drop-shadow"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -251,7 +271,7 @@ const UserDashboard = () => {
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/search?q=${encodeURIComponent(searchInput || '')}`); }}
             placeholder="Search by city, area, or budget (Rs.)"
-            className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all text-sm bg-white"
+            className="w-full pl-14 pr-5 py-4 rounded-2xl border-2 border-teal-200 text-[#374151] placeholder-cyan-500 focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-500 transition-all text-base bg-white shadow-sm"
           />
         </div>
       </div>
@@ -295,17 +315,19 @@ const UserDashboard = () => {
       <div className="px-5 space-y-6">
         {/* Location Chips */}
         <div>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
             {locations.map((location) => (
               <button
                 key={location}
                 onClick={() => setSelectedLocation(location === selectedLocation ? null : location)}
-                className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
+                className={`flex-shrink-0 px-6 py-3 rounded-2xl text-base font-semibold transition-all shadow-lg border-0 flex items-center gap-2 ${
                   selectedLocation === location
-                    ? 'bg-teal-500 text-white shadow-md shadow-teal-200/50'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:border-teal-300'
+                    ? 'bg-[#0F766E] text-white scale-105 ring-2 ring-[#0F766E]'
+                    : 'bg-[#1E293B] text-white hover:bg-[#0F766E] hover:scale-105'
                 }`}
+                style={{boxShadow: selectedLocation === location ? '0 4px 24px 0 rgba(15,118,110,0.15)' : '0 2px 8px 0 rgba(30,41,59,0.08)'}}
               >
+                <svg className="w-5 h-5 text-white opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 {location}
               </button>
             ))}
@@ -314,17 +336,19 @@ const UserDashboard = () => {
 
         {/* Category Filter Pills */}
         <div>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
             {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category === selectedCategory ? null : category)}
-                className={`flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
+                className={`flex-shrink-0 px-6 py-3 rounded-2xl text-base font-semibold transition-all shadow-lg border-0 flex items-center gap-2 ${
                   selectedCategory === category
-                    ? 'bg-teal-500 text-white shadow-md shadow-teal-200/50'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:border-teal-300'
+                    ? 'bg-[#0F766E] text-white scale-105 ring-2 ring-[#0F766E]'
+                    : 'bg-[#1E293B] text-white hover:bg-[#0F766E] hover:scale-105'
                 }`}
+                style={{boxShadow: selectedCategory === category ? '0 4px 24px 0 rgba(15,118,110,0.15)' : '0 2px 8px 0 rgba(30,41,59,0.08)'}}
               >
+                <svg className="w-5 h-5 text-white opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" /></svg>
                 {category}
               </button>
             ))}
@@ -353,7 +377,8 @@ const UserDashboard = () => {
             {featuredListings.map((listing) => (
               <div
                 key={listing.id}
-                className="flex-shrink-0 w-72 bg-white rounded-2xl shadow-md shadow-teal-100/50 overflow-hidden"
+                className="flex-shrink-0 w-72 bg-[#FFFFFF] rounded-2xl overflow-hidden"
+                style={{boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
               >
                 <div className="relative group cursor-pointer" onClick={() => navigate(`/property/${listing.id}`)}>
                   <img
@@ -371,41 +396,41 @@ const UserDashboard = () => {
                         favorites.has(listing.id)
                           ? 'text-red-500 fill-red-500'
                           : 'text-slate-400'
-                      }`}
-                      fill={favorites.has(listing.id) ? 'currentColor' : 'none'}
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <div className="p-4">
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-2xl font-bold text-teal-600">Rs. {listing.price.toLocaleString()}</span>
-                    <span className="text-sm text-slate-500">/ month</span>
-                  </div>
-                  <p className="text-sm font-medium text-slate-700 cursor-pointer hover:underline" onClick={() => navigate(`/property/${listing.id}`)}>{listing.area}, {listing.city}</p>
-                  <p className="text-xs text-slate-400">Posted: {listing.createdAt ? new Date(listing.createdAt).toLocaleString() : 'N/A'}{listing.updatedAt && listing.updatedAt !== listing.createdAt ? ` • Edited: ${new Date(listing.updatedAt).toLocaleString()}` : ''}</p>
-                  <div className="mt-3 flex items-center gap-2">
-                    {listing.status === 'rented' ? (
-                      <span className="px-3 py-1 rounded-md bg-red-500 text-white text-xs font-semibold">Booked</span>
-                    ) : (
-                      <button
-                        className="px-3 py-1 rounded-md bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 transition"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/property/${listing.id}`); }}
+                        }`}
+                        fill={favorites.has(listing.id) ? 'currentColor' : 'none'}
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
                       >
-                        View Details
-                      </button>
-                    )}
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-baseline gap-1 mb-1">
+                      <span className="text-2xl font-bold text-[#0F766E]">Rs. {listing.price.toLocaleString()}</span>
+                      <span className="text-sm text-slate-500">/ month</span>
+                    </div>
+                    <p className="text-sm font-medium text-[#6B7280] cursor-pointer hover:underline" onClick={() => navigate(`/property/${listing.id}`)}>{listing.area}, {listing.city}</p>
+                    <p className="text-xs text-slate-400">Posted: {listing.createdAt ? new Date(listing.createdAt).toLocaleString() : 'N/A'}{listing.updatedAt && listing.updatedAt !== listing.createdAt ? ` • Edited: ${new Date(listing.updatedAt).toLocaleString()}` : ''}</p>
+                    <div className="mt-3 flex items-center gap-2">
+                      {listing.status === 'rented' ? (
+                        <span className="px-3 py-1 rounded-md bg-red-500 text-white text-xs font-semibold">Booked</span>
+                      ) : (
+                        <button
+                          className="px-3 py-1 rounded-md bg-[#10B981] text-white text-xs font-semibold hover:bg-green-700 transition"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/property/${listing.id}`); }}
+                        >
+                          Request Visit
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
             ))}
           </div>
           )}
@@ -423,7 +448,8 @@ const UserDashboard = () => {
             {nearbyRentals.map((rental) => (
               <div
                 key={rental.id}
-                className="bg-white rounded-2xl shadow-md shadow-teal-100/50 overflow-hidden cursor-pointer group"
+                className="bg-[#FFFFFF] rounded-2xl overflow-hidden cursor-pointer group"
+                style={{boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}}
                 onClick={() => navigate(`/property/${rental.id}`)}
               >
                 <div className="flex">
@@ -480,7 +506,7 @@ const UserDashboard = () => {
                     </div>
                     <p className="text-xs text-slate-400 mb-2">Posted: {rental.createdAt ? new Date(rental.createdAt).toLocaleString() : 'N/A'}{rental.updatedAt && rental.updatedAt !== rental.createdAt ? ` • Edited: ${new Date(rental.updatedAt).toLocaleString()}` : ''}</p>
                     <div className="flex items-baseline gap-1 mb-3">
-                      <span className="text-xl font-bold text-teal-600">Rs. {rental.price.toLocaleString()}</span>
+                      <span className="text-xl font-bold text-[#15803D]">Rs. {rental.price.toLocaleString()}</span>
                       <span className="text-xs text-slate-500">/ month</span>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-slate-600">
@@ -548,7 +574,7 @@ const UserDashboard = () => {
                           <span className="px-3 py-1 rounded-md bg-red-500 text-white text-xs font-semibold">Booked</span>
                         ) : (
                           <button
-                            className="px-3 py-1 rounded-md bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 transition"
+                            className="px-3 py-1 rounded-md bg-[#0F766E] text-white text-xs font-semibold hover:bg-teal-700 transition"
                             onClick={(e) => { e.stopPropagation(); navigate(`/property/${rental.id}`); }}
                           >
                             View Details

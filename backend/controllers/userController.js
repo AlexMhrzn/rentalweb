@@ -301,7 +301,104 @@ const changePassword = async (req, res) => {
   }
 };
 
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+
+// Forgot Password: Send OTP
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Email is required' });
+        }
+        const user = await User.findOne({ where: { email } });
+        if (!user) {
+            // Do not crash, return clear error
+            return res.status(404).json({ success: false, message: 'User not found for this email.' });
+        }
+        // Generate 6-digit OTP
+        let otp;
+        try {
+            otp = require('crypto').randomInt(100000, 999999).toString();
+        } catch (err) {
+            return res.status(500).json({ success: false, message: 'OTP generation failed', error: err.message });
+        }
+        const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 min expiry
+        user.resetPasswordOTP = otp;
+        user.resetPasswordExpires = expires;
+        try {
+            await user.save();
+        } catch (err) {
+            return res.status(500).json({ success: false, message: 'Failed to save OTP to database', error: err.message });
+        }
+
+        // Send OTP via email
+        let transporter;
+        try {
+            if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+                return res.status(500).json({ success: false, message: 'Email credentials not set in environment variables.' });
+            }
+            transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS,
+                },
+            });
+        } catch (err) {
+            return res.status(500).json({ success: false, message: 'Failed to configure email transporter', error: err.message });
+        }
+        try {
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: user.email,
+                subject: 'Your Password Reset OTP',
+                text: `Your OTP for password reset is: ${otp}`,
+            });
+        } catch (err) {
+            return res.status(500).json({ success: false, message: 'Failed to send OTP email', error: err.message });
+        }
+
+        return res.status(200).json({ success: true, message: 'OTP sent to email' });
+    } catch (error) {
+        // Log error for backend debugging
+        console.error('Forgot password error:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Reset Password: Verify OTP and set new password
+const resetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+        if (!email || !otp || !newPassword) {
+            return res.status(400).json({ success: false, message: 'All fields required' });
+        }
+        const user = await User.findOne({ where: { email } });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        if (!user.resetPasswordOTP || !user.resetPasswordExpires) {
+            return res.status(400).json({ success: false, message: 'No OTP requested' });
+        }
+        if (user.resetPasswordOTP !== otp) {
+            return res.status(400).json({ success: false, message: 'Invalid OTP' });
+        }
+        if (new Date() > user.resetPasswordExpires) {
+            return res.status(400).json({ success: false, message: 'OTP expired' });
+        }
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.resetPasswordOTP = null;
+        user.resetPasswordExpires = null;
+        await user.save();
+        return res.json({ success: true, message: 'Password reset successful' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Error resetting password', error: error.message });
+    }
+};
+
 module.exports={
-    getAllUser,addUser,addAdminUser,getUsersById,getActiveUsers,updateUser,deleteUser,
-    logInUser,getMe,getProfile,updateProfile,changePassword
+        getAllUser,addUser,addAdminUser,getUsersById,getActiveUsers,updateUser,deleteUser,
+        logInUser,getMe,getProfile,updateProfile,changePassword,
+        forgotPassword,resetPassword
 }

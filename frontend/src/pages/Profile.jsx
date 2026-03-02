@@ -145,23 +145,6 @@ const Profile = () => {
           {/* Main Content */}
           <main className="md:col-span-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              {/* Saved Properties */}
-              <section className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-teal-700 mb-4">Saved Properties</h3>
-                {/* Example grid for properties, replace with actual data */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* You can map stats.savedProperties here if available */}
-                  <div className="bg-gray-50 rounded-lg p-4 text-center text-slate-500">No saved properties yet.</div>
-                </div>
-              </section>
-              {/* Booking Requests */}
-              <section className="bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-teal-700 mb-4">Booking Requests</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* You can map stats.bookingRequests here if available */}
-                  <div className="bg-gray-50 rounded-lg p-4 text-center text-slate-500">No booking requests yet.</div>
-                </div>
-              </section>
             </div>
             {/* Bio Section */}
             <section className="bg-gray-100 p-6 rounded-xl mb-8">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const ForgetPassword = () => {
   const [formData, setFormData] = useState({
@@ -30,29 +31,22 @@ const ForgetPassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    console.log('Form submitted with:', formData);
-    
-    if (!validation()) {
-      console.log('Validation failed');
-      return;
-    }
-
+    if (!validation()) return;
     setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await forgotPasswordApi(formData);
-      
-      console.log('Sending reset request...');
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success('Reset link/OTP sent successfully!');
-      setCountdown(30); // Start 30 second countdown
-      console.log('Reset link sent successfully');
+      const response = await axios.post('http://localhost:3000/api/user/forgot-password', {
+        email: formData.emailOrPhone.trim(),
+      });
+      if (response.data.success) {
+        toast.success('OTP sent to your email!');
+        setCountdown(30);
+        // Navigate to OTP entry screen, pass email
+        navigate(`/reset-password?email=${encodeURIComponent(formData.emailOrPhone.trim())}`);
+      } else {
+        toast.error(response.data.message || 'Failed to send OTP.');
+      }
     } catch (err) {
-      console.error('Forgot password error:', err);
-      toast.error(err.response?.data?.message || 'Failed to send reset link. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to send OTP.');
     } finally {
       setIsSubmitting(false);
     }
@@ -82,22 +76,20 @@ const ForgetPassword = () => {
 
   const handleResend = async () => {
     if (countdown > 0 || !formData.emailOrPhone.trim()) return;
-    
     if (!validation()) return;
-    
     setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await forgotPasswordApi(formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success('Reset link/OTP sent successfully!');
-      setCountdown(30); // Start 30 second countdown
+      const response = await axios.post('http://localhost:3000/api/user/forgot-password', {
+        email: formData.emailOrPhone.trim(),
+      });
+      if (response.data.success) {
+        toast.success('OTP resent to your email!');
+        setCountdown(30);
+      } else {
+        toast.error(response.data.message || 'Failed to resend OTP.');
+      }
     } catch (err) {
-      console.error('Forgot password error:', err);
-      toast.error(err.response?.data?.message || 'Failed to send reset link. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to resend OTP.');
     } finally {
       setIsSubmitting(false);
     }

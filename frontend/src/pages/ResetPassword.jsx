@@ -5,6 +5,7 @@ import axios from 'axios';
 
 const ResetPassword = () => {
     const [formData, setFormData] = useState({
+        otp: '',
         newPassword: '',
         confirmPassword: ''
     });
@@ -12,7 +13,7 @@ const ResetPassword = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const searchParams = new URLSearchParams(location.search);
-    const token = searchParams.get('token');
+    const email = searchParams.get('email');
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -20,8 +21,11 @@ const ResetPassword = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!token) {
-            return toast.error("Invalid or missing token.");
+        if (!email) {
+            return toast.error("Missing email.");
+        }
+        if (!formData.otp || formData.otp.length !== 6) {
+            return toast.error("Enter the 6-digit OTP.");
         }
         if (formData.newPassword.length < 6) {
             return toast.error("Password must be at least 6 characters long.");
@@ -31,16 +35,19 @@ const ResetPassword = () => {
         }
         setIsSubmitting(true);
         try {
-            const response = await axios.post('http://localhost:5000/api/auth/reset-password', {
-                token,
-                password: formData.newPassword
+            const response = await axios.post('http://localhost:3000/api/user/reset-password', {
+                email,
+                otp: formData.otp,
+                newPassword: formData.newPassword
             });
             if (response.data.success) {
                 toast.success('Password updated successfully!');
                 navigate('/login');
+            } else {
+                toast.error(response.data.message || 'Failed to reset password.');
             }
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Invalid or expired token. Please try again.');
+            toast.error(err.response?.data?.message || 'Failed to reset password.');
         } finally {
             setIsSubmitting(false);
         }
@@ -59,9 +66,18 @@ const ResetPassword = () => {
                     </div>
                     <h1 className="text-3xl font-bold text-center text-slate-900 mb-2">Reset Password</h1>
                     <p className="text-center text-slate-500 mb-8 text-sm">
-                        Enter your new password below. The reset link is valid for 15 minutes.
+                        Enter the OTP sent to your email and your new password below. OTP is valid for 10 minutes.
                     </p>
                     <form onSubmit={handleSubmit} className="space-y-5">
+                        <input
+                            name="otp"
+                            type="text"
+                            placeholder="6-digit OTP"
+                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500 outline-none"
+                            value={formData.otp}
+                            onChange={handleChange}
+                            maxLength={6}
+                        />
                         <input
                             name="newPassword"
                             type="password"

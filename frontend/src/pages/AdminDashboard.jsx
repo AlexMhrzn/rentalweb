@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getAdminStats, getPendingApprovals, approveProduct as approveProductApi, rejectProduct as rejectProductApi, getUser, deleteUserById, updateUserById, getProducts, getProductById, updateProduct, deleteProduct } from '../services/api';
+import { getAdminStats, getPendingApprovals, approveProduct as approveProductApi, rejectProduct as rejectProductApi, getUser, deleteUserById, updateUserById, getProducts, getProductById, updateProduct, deleteProduct, getAllReports, updateReportStatus } from '../services/api';
 import { useRef } from 'react';
 
 const AdminDashboard = () => {
@@ -58,12 +58,15 @@ const AdminDashboard = () => {
     monthlyRevenue: 0,
   });
   const [pendingApprovals, setPendingApprovals] = useState([]);
-  const [recentReports, setRecentReports] = useState([]);
   const [users, setUsers] = useState([]);
   const [owners, setOwners] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [editUserId, setEditUserId] = useState(null);
   const [editUserData, setEditUserData] = useState({ username: '', email: '', role: '' });
+
+  // reports state
+  const [reports, setReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -127,6 +130,7 @@ const AdminDashboard = () => {
         };
       }));
 
+
     } catch (err) {
       toast.error('Failed to load dashboard data');
       console.error(err);
@@ -136,6 +140,7 @@ const AdminDashboard = () => {
     }
   };
 
+
   const handleLogout = () => {
     localStorage.removeItem('token-37c');
     localStorage.removeItem('user-role');
@@ -144,11 +149,32 @@ const AdminDashboard = () => {
     toast.success('Logged out successfully');
     navigate('/admin-login');
   };
+
+
   const [activeNav, setActiveNav] = useState('Dashboard');
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [reportsPage, setReportsPage] = useState(1);
   const itemsPerPage = 5;
+
+  // fetch reports when switching to the Reports tab
+  const loadReports = async () => {
+    setReportsLoading(true);
+    try {
+      const res = await getAllReports();
+      setReports(res.data.reports || []);
+    } catch (err) {
+      toast.error('Failed to load reports');
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  // watch for nav changes
+  useEffect(() => {
+    if (activeNav === 'Reports') {
+      loadReports();
+    }
+  }, [activeNav]);
 
   const cityData = [
     { city: 'Kathmandu', count: 420, color: 'from-[#ffecd2] to-[#fcb69f]' },
@@ -203,6 +229,16 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleUpdateReportStatus = async (id, newStatus) => {
+    try {
+      await updateReportStatus(id, { status: newStatus });
+      setReports((prev) => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
+      toast.success('Report status updated');
+    } catch (err) {
+      toast.error('Failed to update report status');
+    }
+  };
+
   const handleDeleteUser = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
@@ -235,11 +271,8 @@ const AdminDashboard = () => {
   };
 
   const totalPages = Math.ceil(pendingApprovals.length / itemsPerPage);
-  const reportsTotalPages = Math.ceil(recentReports.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const reportsStartIndex = (reportsPage - 1) * itemsPerPage;
-  const reportsEndIndex = reportsStartIndex + itemsPerPage;
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-[#E0F7FA] via-[#F1F8E9] to-[#E8F5E9]">
@@ -439,52 +472,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Recent Reports & Complaints */}
-              <div className="bg-gradient-to-br from-[#E0F7FA] via-[#F1F8E9] to-[#E8F5E9] rounded-2xl shadow-2xl border border-teal-100 animate-fade-in p-8">
-                <h2 className="text-3xl font-extrabold text-teal-700 mb-8 flex items-center gap-3">
-                  <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  Recent Reports & Complaints
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                  {recentReports.slice(reportsStartIndex, reportsEndIndex).map((report) => (
-                    <div key={report.id} className="bg-white rounded-xl shadow-lg p-6 border border-teal-100 flex flex-col gap-3 hover:scale-[1.02] transition-transform">
-                      <div className="flex items-center gap-3">
-                        <span className={`px-3 py-2 text-sm font-bold rounded-full ${report.type === 'Complaint' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{report.type}</span>
-                        <span className={`px-3 py-2 text-sm font-bold rounded-full ${report.status === 'Resolved' ? 'bg-green-100 text-green-800' : report.status === 'Under Review' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{report.status}</span>
-                      </div>
-                      <div className="text-lg font-semibold text-teal-900">{report.title}</div>
-                      <div className="text-base text-teal-700 font-medium">Reporter: {report.reporter}</div>
-                      <div className="text-sm text-gray-500">Date: {report.date}</div>
-                      <div className="flex justify-end">
-                        <button className="bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200 font-semibold">View</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {reportsTotalPages > 1 && (
-                  <div className="py-6 border-t border-teal-100 flex items-center justify-between">
-                    <div className="text-base text-teal-700 font-medium">
-                      Showing {reportsStartIndex + 1} to {Math.min(reportsEndIndex, recentReports.length)} of {recentReports.length} results
-                    </div>
-                    <div className="flex space-x-3">
-                      <button
-                        onClick={() => setReportsPage(prev => Math.max(1, prev - 1))}
-                        disabled={reportsPage === 1}
-                        className="px-5 py-3 border border-teal-200 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-teal-50 text-teal-700 font-semibold"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => setReportsPage(prev => Math.min(reportsTotalPages, prev + 1))}
-                        disabled={reportsPage === reportsTotalPages}
-                        className="px-5 py-3 border border-teal-200 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-teal-50 text-teal-700 font-semibold"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+
                       {activeNav === 'Settings' && (
                         <div className="bg-gradient-to-br from-[#E0F7FA] via-[#F1F8E9] to-[#E8F5E9] rounded-2xl shadow-2xl border border-teal-100 animate-fade-in p-8 max-w-2xl mx-auto">
                           <h2 className="text-3xl font-extrabold text-teal-700 mb-8 flex items-center gap-3">
@@ -506,12 +494,7 @@ const AdminDashboard = () => {
                                 <button className="bg-teal-100 px-4 py-2 rounded-full text-teal-700 font-bold hover:bg-teal-200 transition">Toggle</button>
                               </div>
                             </div>
-                            <div className="bg-white rounded-xl shadow-lg p-6 border border-teal-100 flex flex-col gap-4">
-                              <span className="font-semibold text-teal-700 mb-2">Change Password</span>
-                              <input type="password" placeholder="Current Password" className="w-full border px-3 py-2 rounded mb-2" />
-                              <input type="password" placeholder="New Password" className="w-full border px-3 py-2 rounded mb-2" />
-                              <button className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 transition">Update Password</button>
-                            </div>
+
                           </div>
                         </div>
                       )}
@@ -519,6 +502,61 @@ const AdminDashboard = () => {
           )}
 
           {/* Other Navigation Views */}
+                    {activeNav === 'Reports' && (
+                      <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-teal-100 animate-fade-in">
+                        <h2 className="text-2xl font-bold text-teal-700 mb-8">Recent Reports & Complaints</h2>
+                        {reportsLoading ? (
+                          <div className="text-center text-teal-400 py-12 text-lg font-semibold animate-pulse">Loading reports...</div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead className="bg-teal-50">
+                                <tr>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">ID</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Reporter</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Subject</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Message</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Status</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Posted</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-teal-100">
+                                {reports.length === 0 ? (
+                                  <tr><td colSpan={7} className="text-center py-8 text-teal-400">No reports found.</td></tr>
+                                ) : (
+                                  reports.map((r) => (
+                                    <tr key={r.id} className="hover:bg-teal-50 transition-colors">
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-teal-900">{r.id}</td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-teal-900">{r.reporter?.username || 'Unknown'}</td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-teal-900">{r.subject}</td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 max-w-xs truncate">{r.message}</td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${r.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{r.status}</span>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{r.createdAt ? new Date(r.createdAt).toLocaleString() : 'N/A'}</td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        {r.status === 'pending' ? (
+                                          <button
+                                            onClick={() => handleUpdateReportStatus(r.id, 'reviewed')}
+                                            className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-lg transition-colors"
+                                          >Mark reviewed</button>
+                                        ) : (
+                                          <button
+                                            onClick={() => handleUpdateReportStatus(r.id, 'pending')}
+                                            className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg transition-colors"
+                                          >Set pending</button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {activeNav === 'Approvals' && !loading && (
                       <div className="bg-white rounded-lg shadow-sm border border-gray-100">
                         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
@@ -852,6 +890,7 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               )}
+
               {/* Edit Property Modal */}
               {editPropertyId && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">

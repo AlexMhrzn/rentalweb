@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { getProfile, updateProfile, changePassword } from '../services/api';
+import { getProfile, updateProfile } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -8,7 +8,6 @@ const Account = () => {
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState({ username: '', email: '', phone: '', bio: '' });
   const [newImage, setNewImage] = useState(null);
-  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
 
   useEffect(() => {
     const load = async () => {
@@ -54,25 +53,7 @@ const Account = () => {
     }
   };
 
-  const handleChangePassword = async () => {
-    if (pwForm.newPassword !== pwForm.confirm) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    try {
-      const res = await changePassword({
-        currentPassword: pwForm.currentPassword,
-        newPassword: pwForm.newPassword,
-      });
-      if (res.data.success) {
-        toast.success('Password changed');
-        setPwForm({ currentPassword: '', newPassword: '', confirm: '' });
-        navigate('/profile');
-      }
-    } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to change password');
-    }
-  };
+
 
   if (!profile) return null;
 
@@ -136,44 +117,7 @@ const Account = () => {
           </button>
         </div>
 
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold">Change Password</h3>
-          <div className="space-y-3 mt-2">
-            <div>
-              <input
-                type="password"
-                placeholder="Current password"
-                className="w-full border rounded p-2"
-                value={pwForm.currentPassword}
-                onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
-              />
-            </div>
-            <div>
-              <input
-                type="password"
-                placeholder="New password"
-                className="w-full border rounded p-2"
-                value={pwForm.newPassword}
-                onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
-              />
-            </div>
-            <div>
-              <input
-                type="password"
-                placeholder="Confirm new"
-                className="w-full border rounded p-2"
-                value={pwForm.confirm}
-                onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
-              />
-            </div>
-            <button
-              onClick={handleChangePassword}
-              className="px-4 py-2 bg-teal-600 text-white rounded"
-            >
-              Update Password
-            </button>
-          </div>
-        </div>
+
       </div>
     </div>
   );

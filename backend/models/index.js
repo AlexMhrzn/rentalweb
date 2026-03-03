@@ -3,6 +3,7 @@ const Product = require('./productModel');
 const BookingRequest = require('./bookingRequestModel');
 const Favorite = require('./favoriteModel');
 const Message = require('./messageModel');
+const Report = require('./reportModel');
 
 // --- Product & User ---
 Product.belongsTo(User, { as: 'owner', foreignKey: 'ownerId' });
@@ -32,4 +33,8 @@ User.hasMany(BookingRequest, { foreignKey: 'userId', as: 'bookingRequests' });
 User.hasMany(BookingRequest, { foreignKey: 'ownerId', as: 'receivedBookingRequests' });
 Product.hasMany(BookingRequest, { foreignKey: 'productId' });
 
-module.exports = { User, Product, BookingRequest, Favorite, Message };
+// --- Reports ---
+Report.belongsTo(User, { foreignKey: 'userId', as: 'reporter' });
+User.hasMany(Report, { foreignKey: 'userId', as: 'reports' });
+
+module.exports = { User, Product, BookingRequest, Favorite, Message, Report };

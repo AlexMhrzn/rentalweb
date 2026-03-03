@@ -37,6 +37,12 @@ export const getProfile = () => Api.get("/api/user/profile", getConfig());
 export const updateProfile = (formData) => ApiFormData.put('/api/user/profile/update', formData, getFormDataConfig());
 export const changePassword = (data) => Api.put('/api/user/profile/change-password', data, getConfig());
 
+// Reporting APIs
+export const createReport = (data) => Api.post('/api/user/report', data, getConfig());
+export const getMyReports = () => Api.get('/api/user/reports/me', getConfig());
+export const getAllReports = () => Api.get('/api/user/reports', getConfig());
+export const updateReportStatus = (id, data) => Api.put(`/api/user/reports/${id}/status`, data, getConfig());
+
 // Product/Property APIs
 export const getProducts = (params) => Api.get("/api/product/products", { params });
 export const getMyProducts = () => Api.get("/api/product/my", getConfig());

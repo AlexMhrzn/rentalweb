@@ -1,5 +1,6 @@
 const express = require('express');
 const { sequelize, connectDB } = require('./database/db');
+require('./models'); // Ensure all Sequelize associations are registered
 // ... (Your Model Imports)
 const path = require('path');
 const fs = require('fs');
@@ -17,6 +18,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Routes
 app.use('/api/user/', require('./routes/route'));
 app.use('/api/product/', require('./routes/productRoute'));
+app.use('/api/booking/', require('./routes/bookingRoute'));
 // ... (Your other routes)
 
 app.get('/', (req, res) => {
@@ -26,26 +28,9 @@ app.get('/', (req, res) => {
 const startServer = async () => {
     try {
         await connectDB();
-        await sequelize.sync({ alter: true });
+        await sequelize.sync();
         
-        // Ensure PG tables for messaging
-        const { Pool } = require('pg');
-        const pool = new Pool({
-            host: process.env.DB_HOST,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME,
-            port: process.env.DB_PORT || 5432,
-        });
-        const client = await pool.connect();
-        try {
-            await client.query(`CREATE TABLE IF NOT EXISTS conversations (...)`); 
-            await client.query(`CREATE TABLE IF NOT EXISTS messages (...)`);
-            console.log('Tables verified.');
-        } finally { 
-            client.release(); 
-            await pool.end(); 
-        }
+        // ...removed raw SQL for conversations and messages...
 
         // IMPORTANT: Only listen if NOT in test mode
         if (process.env.NODE_ENV !== 'test') {
